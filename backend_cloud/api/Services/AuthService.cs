@@ -1,0 +1,122 @@
+using Microsoft.EntityFrameworkCore;
+using RfidWarehouseApi.Data;
+using RfidWarehouseApi.DTOs;
+using RfidWarehouseApi.Models;
+using BCrypt.Net;
+
+namespace RfidWarehouseApi.Services;
+
+public interface IAuthService
+{
+    Task<AuthResponseDto?> LoginAsync(LoginDto loginDto);
+    Task<AuthResponseDto?> RegisterAsync(RegisterDto registerDto);
+    Task<User?> GetUserByIdAsync(int userId);
+}
+
+public class AuthService : IAuthService
+{
+    private readonly WarehouseDbContext _context;
+    private readonly ITokenService _tokenService;
+    private readonly ILogger<AuthService> _logger;
+
+    public AuthService(
+        WarehouseDbContext context,
+        ITokenService tokenService,
+        ILogger<AuthService> logger)
+    {
+        _context = context;
+        _tokenService = tokenService;
+        _logger = logger;
+    }
+
+    public async Task<AuthResponseDto?> LoginAsync(LoginDto loginDto)
+    {
+        try
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == loginDto.Email);
+
+            if (user == null)
+            {
+                _logger.LogWarning("Login attempt for non-existent user: {Email}", loginDto.Email);
+                return null;
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
+            {
+                _logger.LogWarning("Invalid password attempt for user: {Email}", loginDto.Email);
+                return null;
+            }
+
+            var token = _tokenService.GenerateToken(user);
+
+            return new AuthResponseDto
+            {
+                Token = token,
+                Email = user.Email,
+                Name = user.Name,
+                Lastname = user.Lastname,
+                UserId = user.UserId,
+                RoleId = user.RoleId
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during login for user: {Email}", loginDto.Email);
+            return null;
+        }
+    }
+
+    public async Task<AuthResponseDto?> RegisterAsync(RegisterDto registerDto)
+    {
+        try
+        {
+            // Check if user already exists
+            if (await _context.Users.AnyAsync(u => u.Email == registerDto.Email))
+            {
+                _logger.LogWarning("Registration attempt with existing email: {Email}", registerDto.Email);
+                return null;
+            }
+
+            // Hash password
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
+
+            var user = new User
+            {
+                Email = registerDto.Email,
+                PasswordHash = passwordHash,
+                Name = registerDto.Name,
+                Lastname = registerDto.Lastname,
+                RfidTagUid = registerDto.RfidTagUid,
+                RoleId = registerDto.RoleId
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            var token = _tokenService.GenerateToken(user);
+
+            _logger.LogInformation("New user registered: {Email}", user.Email);
+
+            return new AuthResponseDto
+            {
+                Token = token,
+                Email = user.Email,
+                Name = user.Name,
+                Lastname = user.Lastname,
+                UserId = user.UserId,
+                RoleId = user.RoleId
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during registration for user: {Email}", registerDto.Email);
+            return null;
+        }
+    }
+
+    public async Task<User?> GetUserByIdAsync(int userId)
+    {
+        return await _context.Users.FindAsync(userId);
+    }
+}

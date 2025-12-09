@@ -3,6 +3,30 @@ node_modules/
 npm-debug.log
 package-lock.json
 yarn.lock
+dist/
+.vite/
+
+# .NET / C#
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.nupkg
+*.snupkg
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln.docstates
+[Dd]ebug/
+[Rr]elease/
+[Rr]eleases/
+
+# Entity Framework
+*.db
+*.mdf
+*.ldf
 
 # Python
 __pycache__/
@@ -15,7 +39,6 @@ venv/
 ENV/
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -28,20 +51,51 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
+dist/
 
-# VS Code
-.vscode/
-*.code-workspace
+# Virtual Environments
+venv/
+.venv
+env.bak/
+venv.bak/
 
 # IDE
 .idea/
+.vscode/
+*.code-workspace
 .DS_Store
+*.swp
+*.swo
 
 # Environment files
 .env
 .env.local
 .env.*.local
+*.pem
+*.key
 
 # Logs
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+backend_cloud/api/bin/
+backend_cloud/api/obj/
+frontend_web/dist/
+
+# Test coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Generated files
+*.g.cs
+*.designer.cs
