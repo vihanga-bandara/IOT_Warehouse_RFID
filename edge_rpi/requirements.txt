@@ -1,0 +1,2 @@
+# Python dependencies for RFID Scanner on Raspberry Pi
+# Add your required packages here
