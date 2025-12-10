@@ -9,6 +9,8 @@ param projectName string = 'rfid-warehouse'
 param sqlAdminUsername string
 @secure()
 param sqlAdminPassword string
+// Capture creation timestamp once (allowed in parameter default)
+param createdDate string = utcNow('u')
 
 // Variables
 var uniqueSuffix = uniqueString(resourceGroup().id)
@@ -27,7 +29,7 @@ var commonTags = {
   environment: environment
   project: projectName
   createdBy: 'bicep'
-  createdDate: utcNow('u')
+  createdDate: createdDate
 }
 
 // ===== IoT Hub (Free Tier - 8000 messages/day) =====
