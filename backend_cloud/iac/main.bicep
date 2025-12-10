@@ -20,7 +20,6 @@ var appServiceName = '${resourcePrefix}-app-${uniqueSuffix}'
 var appServicePlanName = '${resourcePrefix}-plan'
 var sqlServerName = '${resourcePrefix}-sqlserver-${uniqueSuffix}'
 var sqlDbName = '${resourcePrefix}-db'
-var keyVaultName = '${resourcePrefix}-kv-${uniqueSuffix}'
 
 // Tags
 var commonTags = {
@@ -46,25 +45,6 @@ resource iotHub 'Microsoft.Devices/IotHubs@2023-06-30' = {
     eventHubEndpoints: {
       events: {
         retentionTimeInDays: 1
-      }
-    }
-    features: 'DeviceManagement,RoutingEndpoints'
-    routing: {
-      endpoints: {
-        storageContainers: []
-        serviceBusQueues: []
-        serviceBusTopics: []
-        eventHubs: []
-      }
-      routes: []
-      fallbackRoute: {
-        name: '$fallback'
-        source: 'DeviceMessages'
-        condition: 'true'
-        endpointNames: [
-          'events'
-        ]
-        isEnabled: true
       }
     }
   }
@@ -118,7 +98,7 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'IoTHub'
-          connectionString: 'Endpoint=${iotHub.properties.eventHubEndpoints.events.endpoint};SharedAccessKeyName=owner;SharedAccessKey=${listKeys(iotHub.id, '2023-06-30').value[0].primaryKey}'
+          connectionString: 'HostName=${iotHub.properties.hostName};SharedAccessKeyName=owner;SharedAccessKey=${iotHub.listkeys().value[0].primaryKey}'
           type: 'Custom'
         }
       ]
@@ -174,7 +154,6 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
 
 // ===== Outputs =====
 output iotHubHostName string = iotHub.properties.hostName
-output iotHubConnectionString string = 'Endpoint=${iotHub.properties.eventHubEndpoints.events.endpoint};SharedAccessKeyName=owner;SharedAccessKey=${listKeys(iotHub.id, '2023-06-30').value[0].primaryKey};EntityPath=${iotHub.properties.eventHubEndpoints.events.path}'
 output appServiceUrl string = 'https://${appService.properties.defaultHostName}'
 output sqlServerName string = sqlServer.properties.fullyQualifiedDomainName
 output sqlDatabaseName string = sqlDatabase.name
