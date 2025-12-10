@@ -153,6 +153,7 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
 
 // ===== Outputs =====
 output iotHubHostName string = iotHub.properties.hostName
+output appServiceName string = appService.name
 output appServiceUrl string = 'https://${appService.properties.defaultHostName}'
 output sqlServerName string = sqlServer.properties.fullyQualifiedDomainName
 output sqlDatabaseName string = sqlDatabase.name
