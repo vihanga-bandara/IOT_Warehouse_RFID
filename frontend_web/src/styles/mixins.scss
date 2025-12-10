@@ -1,0 +1,545 @@
+// ============================================================================
+// SCSS MIXINS - REUSABLE PATTERNS
+// ============================================================================
+
+// ============================================================================
+// RESPONSIVE DESIGN MIXINS
+// ============================================================================
+
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == "sm" {
+    @media (max-width: 400px) {
+      @content;
+    }
+  } @else if $breakpoint == "md" {
+    @media (max-width: 600px) {
+      @content;
+    }
+  } @else if $breakpoint == "lg" {
+    @media (max-width: 800px) {
+      @content;
+    }
+  } @else if $breakpoint == "xl" {
+    @media (max-width: 1200px) {
+      @content;
+    }
+  } @else if $breakpoint == "2xl" {
+    @media (max-width: 1400px) {
+      @content;
+    }
+  }
+}
+
+@mixin mobile {
+  @media (max-width: 600px) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (max-width: 800px) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: 1200px) {
+    @content;
+  }
+}
+
+// ============================================================================
+// FLEXBOX & GRID MIXINS
+// ============================================================================
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin flex-col-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin grid-auto-fill($min-size: 250px) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax($min-size, 1fr));
+}
+
+@mixin grid-auto-fit($min-size: 250px) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax($min-size, 1fr));
+}
+
+// ============================================================================
+// TYPOGRAPHY MIXINS
+// ============================================================================
+
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@mixin font-smoothing {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@mixin heading($size: 2rem, $weight: 800) {
+  margin: 0;
+  font-size: $size;
+  font-weight: $weight;
+  letter-spacing: -0.5px;
+  @include font-smoothing;
+}
+
+@mixin subtitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+// ============================================================================
+// BUTTON MIXINS
+// ============================================================================
+
+@mixin btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-base);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-decoration: none;
+  user-select: none;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@mixin btn-primary {
+  @include btn-base;
+  background: var(--gradient-primary);
+  color: var(--text-inverse);
+  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.3);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(30, 144, 255, 0.4);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+@mixin btn-secondary {
+  @include btn-base;
+  background: var(--border-color);
+  color: var(--text-primary);
+
+  &:hover:not(:disabled) {
+    background: var(--border-color-dark);
+    color: var(--primary-dark);
+  }
+}
+
+@mixin btn-success {
+  @include btn-base;
+  background: var(--gradient-accent);
+  color: var(--text-inverse);
+  box-shadow: 0 4px 12px rgba(80, 200, 120, 0.3);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(80, 200, 120, 0.4);
+  }
+}
+
+@mixin btn-danger {
+  @include btn-base;
+  background: var(--color-error);
+  color: var(--text-inverse);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+  }
+}
+
+@mixin btn-icon {
+  @include btn-base;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  flex-shrink: 0;
+
+  @include respond-to("md") {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+// ============================================================================
+// CARD & CONTAINER MIXINS
+// ============================================================================
+
+@mixin card {
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
+
+  &:hover {
+    border-color: var(--primary-light);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+}
+
+@mixin card-no-hover {
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+@mixin card-accent($color: var(--primary-light)) {
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  border-left: 4px solid $color;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+}
+
+@mixin container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--spacing-xl) var(--spacing-md);
+
+  @include respond-to("md") {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+}
+
+@mixin container-lg {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// ============================================================================
+// FORM INPUT MIXINS
+// ============================================================================
+
+@mixin input-base {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  transition: all var(--transition-normal);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-sizing: border-box;
+
+  @include respond-to("md") {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 16px; // Prevent zoom on mobile
+  }
+
+  &::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    background: var(--bg-secondary);
+    box-shadow: 0 0 0 4px rgba(30, 144, 255, 0.1);
+  }
+}
+
+@mixin input-error {
+  border-color: var(--color-error);
+
+  &:focus {
+    box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.1);
+  }
+}
+
+@mixin label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+
+  svg {
+    opacity: 0.7;
+    color: var(--primary-light);
+  }
+}
+
+// ============================================================================
+// BADGE & STATUS MIXINS
+// ============================================================================
+
+@mixin badge($bg-color: var(--primary-light), $text-color: white) {
+  display: inline-block;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: $bg-color;
+  color: $text-color;
+}
+
+@mixin badge-success {
+  @include badge(var(--gradient-accent), white);
+  box-shadow: 0 2px 8px rgba(80, 200, 120, 0.3);
+}
+
+@mixin badge-warning {
+  @include badge(var(--gradient-warning), white);
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
+@mixin badge-error {
+  @include badge(var(--color-error), white);
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+// ============================================================================
+// SHADOW MIXINS
+// ============================================================================
+
+@mixin shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+@mixin shadow-md {
+  box-shadow: var(--shadow-md);
+}
+
+@mixin shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+@mixin shadow-xl {
+  box-shadow: var(--shadow-xl);
+}
+
+@mixin shadow-hover {
+  transition: box-shadow var(--transition-normal);
+
+  &:hover {
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+// ============================================================================
+// ANIMATION MIXINS
+// ============================================================================
+
+@mixin animation-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+@mixin animation-slide-down {
+  animation: slideDown 0.4s ease-out;
+}
+
+@mixin animation-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@mixin animation-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@mixin animation-spin {
+  animation: spin 1s linear infinite;
+}
+
+// ============================================================================
+// UTILITY MIXINS
+// ============================================================================
+
+@mixin scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@mixin custom-scrollbar($track-color: var(--bg-secondary), $thumb-color: var(--border-color)) {
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $track-color;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $thumb-color;
+    border-radius: 4px;
+
+    &:hover {
+      background: var(--border-color-dark);
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: $track-color;
+  }
+}
+
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+@mixin clearfix {
+  &::after {
+    content: '';
+    display: table;
+    clear: both;
+  }
+}
+
+// ============================================================================
+// KEYFRAME ANIMATIONS
+// ============================================================================
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bounce {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

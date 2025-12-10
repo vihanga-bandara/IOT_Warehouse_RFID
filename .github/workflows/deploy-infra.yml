@@ -17,8 +17,8 @@ permissions:
   contents: read
 
 env:
-  AZURE_RESOURCE_GROUP: rfid-warehouse-rg
-  AZURE_LOCATION: westeurope
+  AZURE_RESOURCE_GROUP: rfid-warehouse-rg-no
+  AZURE_LOCATION: norwayeast
   BICEP_FILE: backend_cloud/iac/main.bicep
   SQL_ADMIN_USERNAME: ${{ secrets.SQL_ADMIN_USERNAME }}
   SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}

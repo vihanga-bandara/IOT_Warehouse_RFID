@@ -1,0 +1,420 @@
+// ============================================================================
+// GLOBAL STYLES
+// ============================================================================
+
+@import './variables.scss';
+@import './mixins.scss';
+
+// ============================================================================
+// RESET & BASE STYLES
+// ============================================================================
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+html {
+  font-size: 16px;
+  @include font-smoothing;
+
+  @include respond-to("md") {
+    font-size: 14px;
+  }
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  font-size: var(--text-base);
+  font-weight: var(--weight-normal);
+  line-height: 1.6;
+  transition: background-color var(--transition-normal),
+              color var(--transition-normal);
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+// ============================================================================
+// TYPOGRAPHY
+// ============================================================================
+
+h1 {
+  @include heading(var(--text-4xl), var(--weight-extrabold));
+}
+
+h2 {
+  @include heading(var(--text-2xl), var(--weight-bold));
+}
+
+h3 {
+  @include heading(var(--text-xl), var(--weight-bold));
+}
+
+h4 {
+  @include heading(var(--text-lg), var(--weight-semibold));
+}
+
+h5,
+h6 {
+  @include heading(var(--text-base), var(--weight-semibold));
+}
+
+p {
+  margin: 0 0 var(--spacing-md) 0;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+small {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--bg-secondary);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  color: var(--primary-dark);
+}
+
+// ============================================================================
+// LINKS
+// ============================================================================
+
+a {
+  color: var(--primary-light);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+
+  &:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+// ============================================================================
+// BUTTONS
+// ============================================================================
+
+button,
+input[type='button'],
+input[type='submit'],
+input[type='reset'] {
+  @include btn-base;
+  background: var(--border-color);
+  color: var(--text-primary);
+
+  &:hover:not(:disabled) {
+    background: var(--border-color-dark);
+  }
+}
+
+// ============================================================================
+// FORMS
+// ============================================================================
+
+input,
+textarea,
+select {
+  @include input-base;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  width: auto;
+  padding: 0;
+  margin-right: var(--spacing-sm);
+  cursor: pointer;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.5rem;
+  padding-right: 2.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+}
+
+// ============================================================================
+// UTILITY CLASSES
+// ============================================================================
+
+.container {
+  @include container;
+}
+
+.container-lg {
+  @include container-lg;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  @include flex-center;
+}
+
+.flex-between {
+  @include flex-between;
+}
+
+.flex-col {
+  @include flex-col;
+}
+
+.flex-col-center {
+  @include flex-col-center;
+}
+
+.grid {
+  display: grid;
+}
+
+.gap-sm {
+  gap: var(--spacing-sm);
+}
+
+.gap-md {
+  gap: var(--spacing-md);
+}
+
+.gap-lg {
+  gap: var(--spacing-lg);
+}
+
+.gap-xl {
+  gap: var(--spacing-xl);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-truncate {
+  @include text-truncate;
+}
+
+.text-clamp {
+  @include text-clamp;
+}
+
+.sr-only {
+  @include visually-hidden;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.h-full {
+  height: 100%;
+}
+
+.m-0 {
+  margin: 0;
+}
+
+.p-0 {
+  padding: 0;
+}
+
+.rounded-sm {
+  border-radius: var(--radius-sm);
+}
+
+.rounded-md {
+  border-radius: var(--radius-md);
+}
+
+.rounded-lg {
+  border-radius: var(--radius-lg);
+}
+
+.rounded-xl {
+  border-radius: var(--radius-xl);
+}
+
+.shadow-sm {
+  @include shadow-sm;
+}
+
+.shadow-md {
+  @include shadow-md;
+}
+
+.shadow-lg {
+  @include shadow-lg;
+}
+
+.shadow-xl {
+  @include shadow-xl;
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.opacity-75 {
+  opacity: 0.75;
+}
+
+.opacity-100 {
+  opacity: 1;
+}
+
+.transition {
+  transition: all var(--transition-normal);
+}
+
+.transition-fast {
+  transition: all var(--transition-fast);
+}
+
+.transition-slow {
+  transition: all var(--transition-slow);
+}
+
+.transform-gpu {
+  transform: translateZ(0);
+}
+
+// ============================================================================
+// SCROLLBAR STYLING
+// ============================================================================
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+
+  &:hover {
+    background: var(--border-color-dark);
+  }
+}
+
+// ============================================================================
+// SELECTION
+// ============================================================================
+
+::selection {
+  background: var(--primary-light);
+  color: var(--text-inverse);
+}
+
+::-moz-selection {
+  background: var(--primary-light);
+  color: var(--text-inverse);
+}
+
+// ============================================================================
+// TRANSITION ANIMATIONS
+// ============================================================================
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: all var(--transition-normal);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all var(--transition-normal);
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all var(--transition-normal);
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+// ============================================================================
+// RESPONSIVE UTILITIES
+// ============================================================================
+
+@include respond-to("md") {
+  body {
+    font-size: var(--text-sm);
+  }
+
+  h1 {
+    font-size: var(--text-3xl);
+  }
+
+  h2 {
+    font-size: var(--text-2xl);
+  }
+}
+
+@include respond-to("sm") {
+  h1 {
+    font-size: var(--text-2xl);
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+  }
+}
