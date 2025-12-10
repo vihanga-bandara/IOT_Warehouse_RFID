@@ -18,11 +18,13 @@ api.interceptors.request.use(config => {
   return Promise.reject(error)
 })
 
-// Handle 401 responses
+// Handle 401 responses (do not redirect on login page)
 api.interceptors.response.use(
   response => response,
   error => {
-    if (error.response?.status === 401) {
+    const isLoginPage = window.location.pathname === '/login'
+    const token = localStorage.getItem('authToken')
+    if (error.response?.status === 401 && token && !isLoginPage) {
       localStorage.removeItem('authToken')
       window.location.href = '/login'
     }

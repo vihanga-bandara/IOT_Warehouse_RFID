@@ -158,18 +158,29 @@
                 </span>
                 <span class="mono">{{ user.rfidUid || 'Not assigned' }}</span>
               </div>
+              <div class="detail-item">
+                <span class="detail-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                </span>
+                <span>{{ user.transactionCount || 0 }} transactions</span>
+              </div>
             </div>
             <div class="user-footer">
               <small>ID: {{ user.id }}</small>
+              <button @click="viewUserTransactions(user.id)" class="view-transactions-btn">
+                View Transactions
+              </button>
             </div>
           </div>
         </div>
 
-        <div v-if="users.length === 0" class="empty-state">
+        <div v-if="!loading && users.length === 0" class="empty-state">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          <p>No users yet. Create one using the "Add New User" button.</p>
+          <p>No users found. Create one using the "Add New User" button.</p>
         </div>
       </div>
     </div>
@@ -177,7 +188,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted} from 'vue'
 import api from '../services/api'
 
 export default {
@@ -195,10 +206,12 @@ export default {
 
     const fetchUsers = async () => {
       try {
-        const response = await api.get('/items')
+        const response = await api.get('/auth/users')
         users.value = response.data
+        console.log('Fetched users:', users.value)
       } catch (err) {
         console.error('Failed to fetch users:', err)
+        console.error('Error details:', err.response)
       } finally {
         loading.value = false
       }
@@ -215,6 +228,11 @@ export default {
       }
     }
 
+    const viewUserTransactions = (userId) => {
+      // Navigate to transaction history filtered by user
+      window.location.href = `/admin/transactions?userId=${userId}`
+    }
+
     onMounted(() => {
       fetchUsers()
     })
@@ -224,7 +242,8 @@ export default {
       loading,
       showRegisterForm,
       newUser,
-      registerUser
+      registerUser,
+      viewUserTransactions
     }
   }
 }
@@ -704,9 +723,29 @@ export default {
 }
 
 .user-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   color: var(--accent-gray);
   font-size: 0.8rem;
   font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.view-transactions-btn {
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-transactions-btn:hover {
+  background: var(--primary-blue-hover);
+  transform: translateY(-1px);
 }
 
 .empty-state {

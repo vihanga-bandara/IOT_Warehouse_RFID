@@ -124,6 +124,38 @@ jobs:
               --output tsv)
             echo "app-name=$APP_NAME" >> $GITHUB_OUTPUT
 
+      - name: Get Connection Strings from Deployment
+        id: get-connections
+        uses: azure/cli@v1
+        with:
+          inlineScript: |
+            SQL_CONN=$(az deployment group show \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --name main \
+              --query properties.outputs.sqlConnectionString.value \
+              --output tsv)
+            
+            IOT_CONN=$(az deployment group show \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --name main \
+              --query properties.outputs.iotHubEventHubConnectionString.value \
+              --output tsv)
+            
+            echo "sql-connection=$SQL_CONN" >> $GITHUB_OUTPUT
+            echo "iot-connection=$IOT_CONN" >> $GITHUB_OUTPUT
+
+      - name: Configure App Service Settings
+        uses: azure/cli@v1
+        with:
+          inlineScript: |
+            az webapp config appsettings set \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --name "${{ steps.get-app-name.outputs.app-name }}" \
+              --settings \
+                "ConnectionStrings__DefaultConnection=${{ steps.get-connections.outputs.sql-connection }}" \
+                "IoTHub__EventHubConnectionString=${{ steps.get-connections.outputs.iot-connection }}" \
+                "Jwt__SecretKey=${{ secrets.JWT_SECRET_KEY }}"
+
       - name: Deploy to App Service
         uses: azure/webapps-deploy@v3
         with:

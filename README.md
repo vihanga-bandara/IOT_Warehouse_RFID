@@ -1,103 +1,57 @@
- # RFID Warehouse Tool Management System
+# RFID Warehouse Tool Management System
 
-A complete IoT warehouse management system for tracking tool inventory using RFID scanning on Raspberry Pi, cloud-based backend with ASP.NET Core 8.0, and a modern Vue 3 web interface. Designed for zero-cost deployment on Azure.
+This project helps you track and manage warehouse tools using RFID technology, with a simple web interface and cloud backend. It is designed for easy setup and use, whether you are running locally or deploying to Azure.
 
-## 🏗️ System Architecture
+## What is this?
 
+An all-in-one system for warehouse tool tracking:
+- Scan tools with RFID on a Raspberry Pi
+- View and manage inventory from a web dashboard
+- Secure login for admins and users
+- Real-time updates and history tracking
+
+## How to run locally
+
+**Requirements:**
+- .NET 8.0 SDK (for backend)
+- Node.js 20+ (for frontend)
+- Python 3.9+ (optional, for Raspberry Pi scanner)
+- SQL Server (LocalDB for development)
+
+**Steps:**
+1. Clone the repository
+2. Open a terminal and run these commands:
+   - Backend:
+  ```
+  cd backend_cloud/api
+     dotnet restore
+     dotnet run
+  ```
+   - Frontend (in a new terminal):
+  ```
+  cd frontend_web
+  npm install
+  npm run dev
+  ```
+3. Open your browser to http://localhost:5173
+
+**Note:**
+If you need to update your database schema with the latest migrations, you can run:
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Azure Cloud (Zero-Cost)                  │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │ Azure IoT Hub (Free) - Message Broker               │   │
-│  └────────────┬─────────────────────────────────────────┘   │
-│               │                                              │
-│  ┌────────────▼─────────────────────────────────────────┐   │
-│  │ App Service (F1 Linux) - .NET 8 Backend             │   │
-│  │  • RESTful API (Auth, Items, Sessions)              │   │
-│  │  • SignalR WebSocket (Real-time Updates)            │   │
-│  │  • EF Core ORM (Database Management)                │   │
-│  │  • JWT Authentication (Secure Access)               │   │
-│  └────────────┬──────────────────────────┬──────────────┘   │
-│               │                          │                  │
-│  ┌────────────▼──────────┐  ┌───────────▼──────────────┐   │
-│  │ SQL Database         │  │ Application Insights    │   │
-│  │ (Serverless Free)    │  │ (Monitoring & Logs)     │   │
-│  └──────────────────────┘  └─────────────────────────┘   │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-         │                              │
-         │                    ┌─────────▼────────────┐
-         │                    │ Vue 3 SPA            │
-         │                    │ • Login/Register     │
-         │                    │ • Kiosk Interface    │
-         │                    │ • Admin Dashboard    │
-         │                    │ • History Tracking   │
-         │                    └─────────────────────┘
-         │
-    ┌────▼────────────────────┐
-    │ Raspberry Pi (Edge)      │
-    │ ┌──────────────────────┐ │
-    │ │ Python RFID Scanner  │ │
-    │ │ • RC522 Reader       │ │
-    │ │ • GPIO/SPI Interface │ │
-    │ │ • MQTT over Azure    │ │
-    │ │ • Connection Retry   │ │
-    │ └──────────────────────┘ │
-    └────┬─────────────────────┘
-         │
-    ┌────▼──────────┐
-    │ RC522 Reader  │
-    │ RFID Antenna  │
-    └───────────────┘
-```
-
-## ⚡ Quick Start
-
-### Prerequisites
-- **.NET 8.0 SDK** - Backend
-- **Node.js 20+** - Frontend  
-- **Python 3.9+** - Edge device (optional)
-- **SQL Server** - Database (LocalDB for development)
-
-### 1. Run Backend
-```bash
-cd backend_cloud/api
-dotnet restore
 dotnet ef database update
-dotnet run
-# Backend available at http://localhost:5000
 ```
+from the `backend_cloud/api` directory.
 
-### 2. Run Frontend (new terminal)
-```bash
-cd frontend_web
-npm install
-npm run dev
-# Frontend available at http://localhost:5173
-```
 
-### 3. Test Login
-Use these credentials (created automatically):
-- **Admin:** admin@warehouse.com / Admin@123456
-- **User:** john.doe@warehouse.com / User@123456
 
-## 📁 Project Structure
 
-```
-backend_cloud/
-├── api/                          # ASP.NET Core 8.0 Backend
-│   ├── Controllers/              # HTTP Endpoints
-│   ├── Services/                 # Business Logic & IoT Integration
-│   ├── Models/                   # Data Models (User, Item, Transaction)
-│   ├── Data/                     # DbContext & Migrations
-│   ├── Hubs/                     # SignalR WebSocket
-│   ├── Program.cs                # Configuration & Startup
-│   └── appsettings.json
-└── iac/                          # Azure Infrastructure
-    ├── main.bicep                # Bicep IaC Template
-    └── parameters.json
+## Need more details?
 
-frontend_web/                      # Vue 3 + Vite
+If you want to understand the project in depth—how it works, what technologies are used, and how all the parts fit together—check out the `specs/knowledge-base.md` file in this repository.
+
+## Support
+
+If you have any issues setting up or running the project, check the knowledge base or reach out to the project maintainer.
 ├── src/
 │   ├── views/                    # Page Components (6 pages)
 │   ├── stores/                   # Pinia State Management

@@ -152,19 +152,13 @@ public class TransactionController : ControllerBase
             .Take(50)
             .Select(t => new
             {
-                t.TransactionId,
+                Id = t.TransactionId,
                 Action = t.Action.ToString(),
-                t.Timestamp,
-                Item = new
-                {
-                    t.Item.ItemId,
-                    t.Item.ItemName,
-                    t.Item.RfidUid
-                },
-                Scanner = new
-                {
-                    t.Scanner.Name
-                }
+                Timestamp = t.Timestamp,
+                ItemName = t.Item.ItemName,
+                ItemId = t.Item.ItemId,
+                RfidUid = t.Item.RfidUid,
+                DeviceName = t.Scanner != null ? t.Scanner.Name : "Unknown"
             })
             .ToListAsync();
 
