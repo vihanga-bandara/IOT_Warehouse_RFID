@@ -108,7 +108,7 @@ export default {
 .history-page {
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f9fa 0%, #f0f3ff 100%);
+  background: var(--gradient-page-bg);
   padding: 2rem 1rem;
 }
 
@@ -207,7 +207,7 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
 }
@@ -235,7 +235,7 @@ export default {
   text-align: center;
   color: var(--accent-gray);
   padding: 3rem 2rem;
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 16px;
   border: 2px dashed var(--border-color);
   box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
@@ -273,7 +273,7 @@ export default {
 }
 
 .results-header {
-  background: white;
+  background: var(--bg-primary);
   padding: 1rem 1.5rem;
   border-radius: 14px 14px 0 0;
   border-bottom: 2px solid var(--border-color);
@@ -294,7 +294,7 @@ export default {
 .history-list {
   display: flex;
   flex-direction: column;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
@@ -342,8 +342,8 @@ export default {
 }
 
 .history-item.checkin .timeline-dot {
-  background: #ffc107;
-  box-shadow: 0 0 0 2px #ffc107;
+  background: var(--color-warning);
+  box-shadow: 0 0 0 2px var(--color-warning);
 }
 
 .item-content {

@@ -209,7 +209,7 @@ export default {
 .kiosk-page {
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f9fa 0%, #f0f3ff 100%);
+  background: var(--gradient-page-bg);
   padding: 1rem;
   display: flex;
   align-items: center;
@@ -217,7 +217,7 @@ export default {
 }
 
 .kiosk-container {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
   width: 100%;
@@ -402,7 +402,7 @@ export default {
   border-radius: 10px;
   border-left: 4px solid;
   transition: all 0.3s ease;
-  background: white;
+  background: var(--bg-secondary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -412,7 +412,7 @@ export default {
 }
 
 .cart-item.return {
-  border-left-color: #ffc107;
+  border-left-color: var(--color-warning);
   background: linear-gradient(135deg, rgba(255, 193, 7, 0.08) 0%, rgba(255, 193, 7, 0.04) 100%);
 }
 
@@ -433,7 +433,7 @@ export default {
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: #ff6b6b;
+  background: var(--color-error);
   color: white;
   border: none;
   border-radius: 8px;
@@ -444,7 +444,7 @@ export default {
 }
 
 .remove-btn:hover {
-  background: #ff5252;
+  background: var(--error-color);
   transform: scale(1.05);
 }
 
@@ -610,7 +610,7 @@ export default {
 
 .message.success {
   background: linear-gradient(135deg, rgba(80, 200, 120, 0.1) 0%, rgba(80, 200, 120, 0.05) 100%);
-  color: #2d5f3f;
+  color: var(--color-success);
   border: 2px solid var(--accent-green);
 }
 
@@ -620,12 +620,12 @@ export default {
 
 .message.error {
   background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%);
-  color: #7d2a2a;
-  border: 2px solid #ff6b6b;
+  color: var(--error-color);
+  border: 2px solid var(--error-color);
 }
 
 .message.error svg {
-  color: #ff6b6b;
+  color: var(--error-color);
 }
 
 .message-fade-enter-active,

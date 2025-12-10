@@ -151,7 +151,7 @@ export default {
 .transactions-page {
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f9fa 0%, #f0f3ff 100%);
+  background: var(--gradient-page-bg);
   padding: 2rem 1rem;
 }
 
@@ -282,7 +282,7 @@ export default {
   border-radius: 10px;
   font-size: 1rem;
   transition: all 0.3s ease;
-  background: white;
+  background: var(--bg-primary);
   color: var(--dark-text);
   box-sizing: border-box;
 }
@@ -295,7 +295,7 @@ export default {
 }
 
 .filter-input::placeholder {
-  color: #adb5bd;
+  color: var(--text-tertiary);
 }
 
 @media (max-width: 600px) {
@@ -311,7 +311,7 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
 }
@@ -339,7 +339,7 @@ export default {
   text-align: center;
   color: var(--accent-gray);
   padding: 3rem 2rem;
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 16px;
   border: 2px dashed var(--border-color);
   box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
@@ -357,7 +357,7 @@ export default {
 }
 
 .transactions-table-section {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
@@ -453,7 +453,7 @@ export default {
 }
 
 .action-badge.checkin {
-  background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+  background: linear-gradient(135deg, #ffb300 0%, #ff9800 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
 }

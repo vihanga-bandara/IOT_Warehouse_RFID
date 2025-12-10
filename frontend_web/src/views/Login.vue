@@ -149,7 +149,7 @@ export default {
 }
 
 .login-card {
-  background: white;
+  background: var(--bg-secondary);
   padding: 3rem 2.5rem;
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 61, 107, 0.25);
@@ -304,8 +304,8 @@ export default {
   font-size: 1rem;
   transition: all 0.3s ease;
   box-sizing: border-box;
-  background: var(--bg-light);
-  color: var(--dark-text);
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 @media (max-width: 600px) {
@@ -318,12 +318,12 @@ export default {
 .form-group input:focus {
   outline: none;
   border-color: var(--primary-light);
-  background: white;
+  background: var(--bg-primary);
   box-shadow: 0 0 0 4px rgba(30, 144, 255, 0.1);
 }
 
 .form-group input::placeholder {
-  color: #adb5bd;
+  color: var(--text-tertiary);
 }
 
 .login-btn {
@@ -376,14 +376,14 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #fee 0%, #fdd 100%);
+  background: rgba(255, 107, 107, 0.1);
   color: var(--error-color);
   padding: 1rem;
   border-radius: 10px;
   margin-bottom: 1rem;
   font-size: 0.9rem;
   font-weight: 500;
-  border: 2px solid #f8d7da;
+  border: 2px solid var(--error-color);
 }
 
 .fade-enter-active, .fade-leave-active {
@@ -446,7 +446,7 @@ export default {
   gap: 0.75rem;
   padding: 0.6rem;
   margin-bottom: 0.5rem;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 6px;
   border: 1px solid var(--border-color);
 }
@@ -458,8 +458,8 @@ export default {
 .credential-item code {
   font-family: 'Monaco', 'Menlo', monospace;
   font-size: 0.8rem;
-  color: var(--dark-text);
-  background: var(--bg-light);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   flex: 1;

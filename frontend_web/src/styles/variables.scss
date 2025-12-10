@@ -37,11 +37,16 @@ $color-info: #1e90ff;
   --text-secondary: #7f8c8d;
   --text-tertiary: #95a5a6;
   --text-inverse: #ffffff;
+  --dark-text: #2c3e50;
+  --light-text: #7f8c8d;
+  --error-color: #ff6b6b;
 
   // Background Colors
   --bg-primary: #ffffff;
   --bg-secondary: #f8f9fa;
   --bg-tertiary: #f0f3ff;
+  --bg-light: #f8f9fa;
+  --bg-lighter: #f0f3ff;
   --bg-overlay: rgba(0, 0, 0, 0.5);
 
   // Border & Divider
@@ -121,12 +126,17 @@ $color-info: #1e90ff;
   --text-secondary: #b8c5d6;
   --text-tertiary: #8b95a8;
   --text-inverse: #1a1f2e;
+  --dark-text: #d0d8e8;
+  --light-text: #b8c5d6;
+  --error-color: #ff8888;
 
-  // Background Colors
-  --bg-primary: #1a1f2e;
-  --bg-secondary: #242d42;
-  --bg-tertiary: #2a3550;
-  --bg-overlay: rgba(0, 0, 0, 0.7);
+  // Background Colors - DARKER for better input contrast
+  --bg-primary: #151b28;
+  --bg-secondary: #1a202d;
+  --bg-tertiary: #232d42;
+  --bg-light: #1a202d;
+  --bg-lighter: #232d42;
+  --bg-overlay: rgba(0, 0, 0, 0.8);
 
   // Border & Divider
   --border-color: #3a4557;
@@ -143,7 +153,7 @@ $color-info: #1e90ff;
   --gradient-primary: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
   --gradient-accent: linear-gradient(135deg, var(--accent-green) 0%, #4ab878 100%);
   --gradient-warning: linear-gradient(135deg, #ffdd57 0%, #ffca2c 100%);
-  --gradient-page-bg: linear-gradient(135deg, #1a1f2e 0%, #2a3550 100%);
+  --gradient-page-bg: linear-gradient(135deg, #121821 0%, #1a202d 100%);
 }
 
 // ============================================================================

@@ -213,7 +213,7 @@ export default {
 .users-page {
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f9fa 0%, #f0f3ff 100%);
+  background: var(--gradient-page-bg);
   padding: 2rem 1rem;
 }
 
@@ -339,7 +339,7 @@ export default {
 }
 
 .form-modal {
-  background: white;
+  background: var(--bg-secondary);
   padding: 2.5rem;
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 61, 107, 0.25);
@@ -446,7 +446,7 @@ export default {
 }
 
 .form-input::placeholder {
-  color: #adb5bd;
+  color: var(--text-tertiary);
 }
 
 @media (max-width: 600px) {
@@ -505,7 +505,7 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
 }

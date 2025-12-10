@@ -295,7 +295,7 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
 }
@@ -327,7 +327,7 @@ export default {
 }
 
 .summary-card {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 14px;
   padding: 1.5rem;
   box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
@@ -408,7 +408,7 @@ export default {
 }
 
 .inventory-section {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 16px;
   padding: 2rem;
   box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
@@ -488,7 +488,7 @@ export default {
 }
 
 .item-card {
-  background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   border: 2px solid var(--border-color);
   border-radius: 12px;
   padding: 1.5rem;
@@ -591,60 +591,23 @@ export default {
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: #fff3cd;
-  color: #856404;
+  background: rgba(255, 193, 7, 0.15);
+  color: var(--color-warning);
 }
 
 .item-status.borrowed {
-  background: #f8d7da;
-  color: #721c24;
+  background: rgba(255, 107, 107, 0.15);
+  color: var(--error-color);
 }
 
 .item-card h4 {
   margin: 0 0 1rem;
-  color: #2c3e50;
+  color: var(--dark-text);
 }
 
 .item-card p {
   margin: 0.5rem 0;
-  color: #34495e;
+  color: var(--text-secondary);
   font-size: 0.9rem;
-}
-
-.item-footer {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #ecf0f1;
-  color: #95a5a6;
-  font-size: 0.8rem;
-}
-
-.inventory-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.summary-card {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 1.5rem;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.summary-number {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #3498db;
-  margin-bottom: 0.5rem;
-}
-
-.summary-label {
-  color: #7f8c8d;
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.85rem;
 }
 </style>
