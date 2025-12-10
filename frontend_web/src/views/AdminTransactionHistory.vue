@@ -140,7 +140,17 @@ export default {
     const fetchTransactions = async () => {
       try {
         const response = await api.get('/transaction/all')
-        transactions.value = response.data
+        const payload = response?.data?.data ?? response?.data ?? []
+        const list = Array.isArray(payload) ? payload : []
+
+        transactions.value = list.map((tx, idx) => ({
+          id: tx.transactionId ?? tx.id ?? idx,
+          itemName: tx.item?.itemName ?? 'Unknown item',
+          userName: tx.user ? `${tx.user.name ?? ''} ${tx.user.lastname ?? ''}`.trim() || 'Unknown user' : 'Unknown user',
+          action: tx.action ?? '',
+          deviceName: tx.scanner?.name ?? tx.scanner?.deviceId ?? 'N/A',
+          timestamp: tx.timestamp ?? tx.createdAt ?? new Date().toISOString()
+        }))
       } catch (err) {
         console.error('Failed to fetch transactions:', err)
       } finally {
