@@ -27,17 +27,20 @@ public class ItemsController : ControllerBase
             .Include(i => i.CurrentHolder)
             .Select(i => new
             {
-                i.ItemId,
-                i.RfidUid,
-                i.ItemName,
-                Status = i.Status.ToString(),
-                i.LastUpdated,
-                CurrentHolder = i.CurrentHolder != null ? new
+                id = i.ItemId,
+                itemId = i.ItemId,
+                rfidUid = i.RfidUid,
+                itemName = i.ItemName,
+                status = i.Status.ToString(),
+                lastUpdated = i.LastUpdated,
+                currentHolderName = i.CurrentHolder != null ? (i.CurrentHolder.Name + " " + i.CurrentHolder.Lastname).Trim() : null,
+                currentHolderEmail = i.CurrentHolder != null ? i.CurrentHolder.Email : null,
+                currentHolder = i.CurrentHolder != null ? new
                 {
-                    i.CurrentHolder.UserId,
-                    i.CurrentHolder.Name,
-                    i.CurrentHolder.Lastname,
-                    i.CurrentHolder.Email
+                    userId = i.CurrentHolder.UserId,
+                    name = i.CurrentHolder.Name,
+                    lastname = i.CurrentHolder.Lastname,
+                    email = i.CurrentHolder.Email
                 } : null
             })
             .ToListAsync();

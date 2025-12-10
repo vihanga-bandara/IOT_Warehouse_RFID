@@ -23,6 +23,12 @@
           </svg>
           Dashboard
         </router-link>
+        <router-link to="/admin/items" class="nav-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="16" rx="2" ry="2"/><path d="M3 10h18"/>
+          </svg>
+          Items
+        </router-link>
         <router-link to="/admin/transactions" class="nav-link">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"/><path d="M12 6v6l4 2"/>
@@ -44,7 +50,7 @@
 
       <div v-else>
         <div class="summary-grid">
-          <div class="summary-card total">
+          <div class="summary-card surface-card surface-card--compact total">
             <div class="summary-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 2v20M2 12h20"/>
@@ -56,7 +62,7 @@
             </div>
           </div>
 
-          <div class="summary-card borrowed">
+          <div class="summary-card surface-card surface-card--compact borrowed">
             <div class="summary-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/>
@@ -68,7 +74,7 @@
             </div>
           </div>
 
-          <div class="summary-card available">
+          <div class="summary-card surface-card surface-card--compact available">
             <div class="summary-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
@@ -81,13 +87,13 @@
           </div>
         </div>
 
-        <div class="inventory-section">
+        <div class="inventory-section surface-card surface-card--padded">
           <div class="section-header">
             <h2>Currently Borrowed Items</h2>
             <span class="item-count">{{ borrowedItems.length }} items</span>
           </div>
 
-          <div v-if="borrowedItems.length === 0" class="empty-state">
+          <div v-if="borrowedItems.length === 0" class="empty-state surface-card surface-card--padded">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
@@ -95,7 +101,7 @@
           </div>
 
           <div v-else class="items-grid">
-            <div v-for="item in borrowedItems" :key="item.id" class="item-card">
+            <div v-for="item in borrowedItems" :key="item.id" class="item-card surface-card surface-card--padded">
               <div class="item-badge">Borrowed</div>
               <h4 class="item-name">{{ item.itemName }}</h4>
               <div class="item-details">
@@ -136,25 +142,82 @@ export default {
     const authStore = useAuthStore()
     const items = ref([])
     const loading = ref(true)
+    const transactions = ref([])
 
-    const borrowedItems = computed(() =>
-      items.value.filter(item => item.status === 'Borrowed')
-    )
+    const isBorrowed = (item) => {
+      const status = (item?.status || '').toString().toLowerCase()
+      if (!status) return false
+      if (status.includes('borrow')) return true
+      if (status.includes('checkout') || status.includes('checkedout')) return true
+      if (status === 'unavailable' || status === 'out') return true
+      return false
+    }
+
+    const latestActionByItem = computed(() => {
+      const map = new Map()
+      transactions.value.forEach(tx => {
+        const ts = new Date(tx.timestamp || tx.createdAt || Date.now()).getTime()
+        const existing = map.get(tx.itemId)
+        if (!existing || ts > existing.ts) {
+          map.set(tx.itemId, {
+            action: tx.action || '',
+            ts
+          })
+        }
+      })
+      return map
+    })
+
+    const derivedBorrowState = (item) => {
+      const latest = latestActionByItem.value.get(item.id || item.itemId)
+      if (latest) {
+        const a = (latest.action || '').toLowerCase()
+        if (a.includes('checkin') || a.includes('return')) return false
+        if (a.includes('checkout') || a.includes('borrow')) return true
+      }
+      return isBorrowed(item)
+    }
+
+    const borrowedItems = computed(() => {
+      const borrowed = items.value.filter(item => derivedBorrowState(item))
+      console.log('Borrowed items count:', borrowed.length)
+      return borrowed
+    })
 
     const totalItems = computed(() => items.value.length)
 
-    const availableItems = computed(() =>
-      items.value.filter(item => item.status === 'Available').length
-    )
+    const availableItems = computed(() => {
+      const availableCount = items.value.filter(item => !derivedBorrowState(item)).length
+      const fallback = Math.max(totalItems.value - borrowedItems.value.length, 0)
+      return availableCount || fallback
+    })
 
     const fetchItems = async () => {
       try {
         const response = await api.get('/items')
         items.value = response.data
+        console.log('Fetched items:', items.value)
+        items.value.forEach(item => {
+          console.log(`Item ${item.itemName}: status=${item.status}, id=${item.id}`)
+        })
       } catch (err) {
         console.error('Failed to fetch items:', err)
-      } finally {
-        loading.value = false
+      }
+    }
+
+    const fetchTransactions = async () => {
+      try {
+        const response = await api.get('/transaction/all')
+        const payload = response?.data?.data ?? response?.data ?? []
+        const list = Array.isArray(payload) ? payload : []
+        transactions.value = list.map((tx, idx) => ({
+          itemId: tx.item?.id ?? tx.itemId,
+          action: tx.action || '',
+          timestamp: tx.timestamp || tx.createdAt || new Date().toISOString(),
+          idx
+        }))
+      } catch (err) {
+        console.error('Failed to fetch transactions:', err)
       }
     }
 
@@ -164,11 +227,14 @@ export default {
     }
 
     const formatDate = (timestamp) => {
+      if (!timestamp) return 'Unknown'
       return new Date(timestamp).toLocaleDateString()
     }
 
-    onMounted(() => {
-      fetchItems()
+    onMounted(async () => {
+      loading.value = true
+      await Promise.all([fetchItems(), fetchTransactions()])
+      loading.value = false
     })
 
     return {
@@ -188,7 +254,7 @@ export default {
 .dashboard-page {
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f9fa 0%, #f0f3ff 100%);
+  background: var(--gradient-page-bg);
   padding: 2rem 1rem;
 }
 
@@ -379,11 +445,6 @@ export default {
 }
 
 .summary-card {
-  background: var(--bg-secondary);
-  border-radius: 14px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
-  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -392,7 +453,7 @@ export default {
 
 .summary-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 61, 107, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .summary-card.total {
@@ -460,10 +521,6 @@ export default {
 }
 
 .inventory-section {
-  background: var(--bg-secondary);
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
   animation: slideUp 0.4s ease-out;
 }
 
@@ -517,8 +574,6 @@ export default {
   text-align: center;
   color: var(--accent-gray);
   padding: 3rem 2rem;
-  background: linear-gradient(135deg, rgba(0, 61, 107, 0.02) 0%, rgba(80, 200, 120, 0.02) 100%);
-  border-radius: 12px;
   border: 2px dashed var(--border-color);
 }
 
@@ -540,14 +595,9 @@ export default {
 }
 
 .item-card {
-  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
-  padding: 1.5rem;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 61, 107, 0.06);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-fast);
 }
 
 .item-card::before {
@@ -562,7 +612,7 @@ export default {
 
 .item-card:hover {
   border-color: var(--primary-light);
-  box-shadow: 0 8px 24px rgba(30, 144, 255, 0.15);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
 }
 
@@ -632,23 +682,6 @@ export default {
   .items-grid {
     grid-template-columns: 1fr;
   }
-}
-
-.item-status {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: rgba(255, 193, 7, 0.15);
-  color: var(--color-warning);
-}
-
-.item-status.borrowed {
-  background: rgba(255, 107, 107, 0.15);
-  color: var(--error-color);
 }
 
 .item-card h4 {

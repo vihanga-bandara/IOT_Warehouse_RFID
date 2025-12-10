@@ -148,19 +148,30 @@ jobs:
         uses: azure/cli@v1
         with:
           inlineScript: |
+            SQL_CONN="${{ steps.get-connections.outputs.sql-connection }}"
+            IOT_CONN="${{ steps.get-connections.outputs.iot-connection }}"
+            
+            # Validate connection strings are not empty
+            if [ -z "$SQL_CONN" ] || [ -z "$IOT_CONN" ]; then
+              echo "Error: Connection strings are empty"
+              echo "SQL_CONN: $SQL_CONN"
+              echo "IOT_CONN: $IOT_CONN"
+              exit 1
+            fi
+            
             # Set SQL connection string in Connection Strings section
             az webapp config connection-string set \
               --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
               --name "${{ steps.get-app-name.outputs.app-name }}" \
               --connection-string-type SQLAzure \
-              --settings DefaultConnection="${{ steps.get-connections.outputs.sql-connection }}"
+              --settings "DefaultConnection=$SQL_CONN"
             
             # Set IoT Hub and JWT in App Settings (nested config keys use double underscores)
             az webapp config appsettings set \
               --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
               --name "${{ steps.get-app-name.outputs.app-name }}" \
               --settings \
-                "IoTHub__EventHubConnectionString=${{ steps.get-connections.outputs.iot-connection }}" \
+                "IoTHub__EventHubConnectionString=$IOT_CONN" \
                 "Jwt__SecretKey=${{ secrets.JWT_SECRET_KEY }}"
 
       - name: Deploy to App Service

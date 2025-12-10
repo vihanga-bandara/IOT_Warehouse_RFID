@@ -6,12 +6,12 @@ export const useCartStore = defineStore('cart', () => {
 
   const itemCount = computed(() => items.value.length)
 
-  const borrowItems = computed(() => 
-    items.value.filter(item => item.action === 'Borrow')
+  const borrowItems = computed(() =>
+    items.value.filter(item => ['Borrow', 'Checkout'].includes(item.action))
   )
 
   const returnItems = computed(() =>
-    items.value.filter(item => item.action === 'Checkin')
+    items.value.filter(item => ['Return', 'Checkin'].includes(item.action))
   )
 
   const addItem = (item) => {
