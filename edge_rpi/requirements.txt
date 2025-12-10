@@ -1,2 +1,11 @@
-# Python dependencies for RFID Scanner on Raspberry Pi
-# Add your required packages here
+# Azure IoT Hub
+azure-iot-device==2.12.0
+
+# RFID Reader
+RPi.GPIO==0.7.0
+spidev==3.5
+pirc522==2.2.1
+
+# Logging and utils
+python-dotenv==1.0.0
+Adafruit-GPIO==1.0.3

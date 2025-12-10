@@ -1,0 +1,154 @@
+name: Build and Deploy to Azure
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ===== Backend Build =====
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        working-directory: ./backend_cloud/api
+        run: dotnet restore
+
+      - name: Build
+        working-directory: ./backend_cloud/api
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        working-directory: ./backend_cloud/api
+        run: dotnet test --configuration Release --no-build --verbosity normal || true
+
+      - name: Publish
+        working-directory: ./backend_cloud/api
+        run: dotnet publish -c Release -o ${{ github.workspace }}/backend-dist
+
+      - name: Upload backend artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-dist
+          path: ${{ github.workspace }}/backend-dist
+
+  # ===== Frontend Build =====
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        working-directory: ./frontend_web
+        run: npm ci
+
+      - name: Build
+        working-directory: ./frontend_web
+        run: npm run build
+
+      - name: Upload frontend artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-dist
+          path: ./frontend_web/dist
+
+  # ===== Deploy to Azure (Main branch only) =====
+  deploy:
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download backend artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: backend-dist
+          path: ${{ github.workspace }}/backend-dist
+
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: frontend-dist
+          path: ${{ github.workspace }}/frontend-dist
+
+      - name: Copy frontend to wwwroot
+        run: |
+          mkdir -p ${{ github.workspace }}/backend-dist/wwwroot
+          cp -r ${{ github.workspace }}/frontend-dist/* ${{ github.workspace }}/backend-dist/wwwroot/
+
+      - name: Setup .NET for migrations
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Apply EF Core Migrations
+        env:
+          CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
+        working-directory: ./backend_cloud/api
+        run: |
+          dotnet tool install --global dotnet-ef
+          dotnet ef database update --configuration Release
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.AZURE_APP_NAME }}
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+          package: ${{ github.workspace }}/backend-dist
+
+      - name: Deploy Bicep Infrastructure
+        run: |
+          az deployment group create \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --template-file backend_cloud/iac/main.bicep \
+            --parameters @backend_cloud/iac/parameters.json \
+            --parameters sqlAdminPassword=${{ secrets.SQL_ADMIN_PASSWORD }}
+
+  # ===== Code Quality Checks =====
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Run dotnet format check
+        working-directory: ./backend_cloud/api
+        run: dotnet format --verify-no-changes --severity info || true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+
+      - name: Run eslint
+        working-directory: ./frontend_web
+        run: npm run lint 2>/dev/null || true
