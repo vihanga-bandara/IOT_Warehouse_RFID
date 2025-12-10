@@ -20,8 +20,6 @@ env:
   AZURE_RESOURCE_GROUP: rfid-warehouse-rg-no
   AZURE_LOCATION: norwayeast
   BICEP_FILE: backend_cloud/iac/main.bicep
-  SQL_ADMIN_USERNAME: ${{ secrets.SQL_ADMIN_USERNAME }}
-  SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
 
 jobs:
   what-if:
@@ -59,7 +57,7 @@ jobs:
             az deployment group what-if \
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --template-file "$BICEP_FILE" \
-              --parameters location="$AZURE_LOCATION" sqlAdminUsername="$SQL_ADMIN_USERNAME" sqlAdminPassword="$SQL_ADMIN_PASSWORD"
+              --parameters location="$AZURE_LOCATION"
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -96,4 +94,4 @@ jobs:
             az deployment group create \
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --template-file "$BICEP_FILE" \
-              --parameters location="$AZURE_LOCATION" sqlAdminUsername="$SQL_ADMIN_USERNAME" sqlAdminPassword="$SQL_ADMIN_PASSWORD"
+              --parameters location="$AZURE_LOCATION"
