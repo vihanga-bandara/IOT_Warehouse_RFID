@@ -38,8 +38,9 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Register required providers
+      - name: Register required providers (what-if)
         uses: azure/cli@v1
+        continue-on-error: true
         with:
           inlineScript: |
             az provider register --namespace Microsoft.Sql
@@ -74,8 +75,9 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Register required providers
+      - name: Register required providers (deploy)
         uses: azure/cli@v1
+        continue-on-error: true
         with:
           inlineScript: |
             az provider register --namespace Microsoft.Sql
