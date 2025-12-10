@@ -159,6 +159,21 @@ export default {
   animation: slideUp 0.4s ease-out;
 }
 
+@media (max-width: 600px) {
+  .login-card {
+    padding: 2rem 1.5rem;
+    margin: 0.5rem;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 400px) {
+  .login-card {
+    padding: 1.5rem 1rem;
+    margin: 0.25rem;
+  }
+}
+
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -180,6 +195,20 @@ export default {
   width: auto;
   margin-bottom: 1rem;
   animation: bounce 0.6s ease-out;
+}
+
+@media (max-width: 600px) {
+  .logo-image {
+    height: 100px;
+    margin-bottom: 0.8rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .logo-image {
+    height: 80px;
+    margin-bottom: 0.6rem;
+  }
 }
 
 @keyframes bounce {
@@ -210,7 +239,7 @@ export default {
 }
 
 .login-card h1 {
-  color: #2c3e50;
+  color: var(--dark-text);
   margin: 0 0 0.5rem;
   font-size: 2rem;
   font-weight: 700;
@@ -222,6 +251,26 @@ export default {
   margin: 0;
   font-size: 1rem;
   font-weight: 500;
+}
+
+@media (max-width: 600px) {
+  .login-card h1 {
+    font-size: 1.6rem;
+  }
+  
+  .subtitle {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .login-card h1 {
+    font-size: 1.4rem;
+  }
+  
+  .subtitle {
+    font-size: 0.85rem;
+  }
 }
 
 .login-form {
@@ -259,6 +308,13 @@ export default {
   color: var(--dark-text);
 }
 
+@media (max-width: 600px) {
+  .form-group input {
+    padding: 0.85rem 0.9rem;
+    font-size: 16px;
+  }
+}
+
 .form-group input:focus {
   outline: none;
   border-color: var(--primary-light);
@@ -286,6 +342,13 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .login-btn {
+    padding: 0.9rem;
+    font-size: 0.95rem;
+  }
 }
 
 .login-btn:hover:not(:disabled) {
@@ -344,6 +407,20 @@ export default {
   border-radius: 10px;
   font-size: 0.85rem;
   border: 2px solid var(--border-color);
+}
+
+@media (max-width: 600px) {
+  .test-credentials {
+    padding: 1rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .test-credentials {
+    padding: 0.8rem;
+    font-size: 0.75rem;
+  }
 }
 
 .credentials-header {
