@@ -39,7 +39,7 @@ jobs:
         run: dotnet publish -c Release -o ${{ github.workspace }}/backend-dist
 
       - name: Upload backend artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: backend-dist
           path: ${{ github.workspace }}/backend-dist
@@ -64,7 +64,7 @@ jobs:
         run: npm run build
 
       - name: Upload frontend artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
           path: ./frontend_web/dist
@@ -79,13 +79,13 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Download backend artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: backend-dist
           path: ${{ github.workspace }}/backend-dist
 
       - name: Download frontend artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: ${{ github.workspace }}/frontend-dist
