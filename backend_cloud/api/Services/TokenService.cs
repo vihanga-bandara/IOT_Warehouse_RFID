@@ -32,16 +32,22 @@ public class TokenService : ITokenService
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(ClaimTypes.Name, $"{user.Name} {user.Lastname}"),
-            new Claim(ClaimTypes.Role, user.RoleId == 1 ? "Admin" : "User"),
             new Claim("UserId", user.UserId.ToString()),
-            new Claim("RoleId", user.RoleId.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        // Add role claims for each role the user has
+        foreach (var userRight in user.UserRights)
+        {
+            var roleName = userRight.RoleId == 1 ? "Admin" : "User";
+            claims.Add(new Claim(ClaimTypes.Role, roleName));
+            claims.Add(new Claim("RoleId", userRight.RoleId.ToString()));
+        }
 
         var token = new JwtSecurityToken(
             issuer: issuer,

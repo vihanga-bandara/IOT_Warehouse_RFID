@@ -34,6 +34,7 @@ public class AuthService : IAuthService
         try
         {
             var user = await _context.Users
+                .Include(u => u.UserRights)
                 .FirstOrDefaultAsync(u => u.Email == loginDto.Email);
 
             if (user == null)
@@ -57,7 +58,7 @@ public class AuthService : IAuthService
                 Name = user.Name,
                 Lastname = user.Lastname,
                 UserId = user.UserId,
-                RoleId = user.RoleId
+                RoleIds = user.UserRights.Select(ur => ur.RoleId).ToList()
             };
         }
         catch (Exception ex)
@@ -87,16 +88,32 @@ public class AuthService : IAuthService
                 PasswordHash = passwordHash,
                 Name = registerDto.Name,
                 Lastname = registerDto.Lastname,
-                RfidTagUid = registerDto.RfidTagUid,
-                RoleId = registerDto.RoleId
+                RfidTagUid = registerDto.RfidTagUid
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            var token = _tokenService.GenerateToken(user);
+            // Assign roles (default to User role if not specified)
+            var roleIds = registerDto.RoleIds ?? new List<int> { 2 };
+            foreach (var roleId in roleIds)
+            {
+                _context.UserRights.Add(new UserRight
+                {
+                    UserId = user.UserId,
+                    RoleId = roleId
+                });
+            }
+            await _context.SaveChangesAsync();
 
-            _logger.LogInformation("New user registered: {Email}", user.Email);
+            // Reload user with UserRights
+            user = await _context.Users
+                .Include(u => u.UserRights)
+                .FirstOrDefaultAsync(u => u.UserId == user.UserId);
+
+            var token = _tokenService.GenerateToken(user!);
+
+            _logger.LogInformation("New user registered: {Email}", user!.Email);
 
             return new AuthResponseDto
             {
@@ -105,7 +122,7 @@ public class AuthService : IAuthService
                 Name = user.Name,
                 Lastname = user.Lastname,
                 UserId = user.UserId,
-                RoleId = user.RoleId
+                RoleIds = user.UserRights.Select(ur => ur.RoleId).ToList()
             };
         }
         catch (Exception ex)

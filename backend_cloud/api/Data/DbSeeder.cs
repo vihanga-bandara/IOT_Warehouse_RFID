@@ -7,13 +7,30 @@ public static class DbSeeder
 {
     public static void SeedData(ModelBuilder modelBuilder)
     {
+        // Seed Roles first
+        modelBuilder.Entity<Role>().HasData(
+            new Role
+            {
+                RoleId = 1,
+                RoleName = "Admin",
+                Description = "Administrator with full access"
+            },
+            new Role
+            {
+                RoleId = 2,
+                RoleName = "User",
+                Description = "Regular user with limited access"
+            }
+        );
+
         // Seed Scanners
         modelBuilder.Entity<Scanner>().HasData(
             new Scanner
             {
                 ScannerId = 1,
-                DeviceIdString = "rpi-scanner-01",
-                LocationName = "Main Warehouse Entrance"
+                DeviceId = "rpi-scanner-01",
+                Name = "Main Warehouse Entrance",
+                Status = "active"
             }
         );
 
@@ -28,8 +45,7 @@ public static class DbSeeder
                 Email = "admin@warehouse.com",
                 PasswordHash = adminPasswordHash,
                 Name = "Admin",
-                Lastname = "User",
-                RoleId = 1 // Admin
+                Lastname = "User"
             },
             new User
             {
@@ -37,8 +53,21 @@ public static class DbSeeder
                 Email = "john.doe@warehouse.com",
                 PasswordHash = userPasswordHash,
                 Name = "John",
-                Lastname = "Doe",
-                RoleId = 2 // Regular user
+                Lastname = "Doe"
+            }
+        );
+
+        // Seed UserRights (assign roles to users)
+        modelBuilder.Entity<UserRight>().HasData(
+            new UserRight
+            {
+                UserId = 1,
+                RoleId = 1 // Admin user has Admin role
+            },
+            new UserRight
+            {
+                UserId = 2,
+                RoleId = 2 // John has User role
             }
         );
 

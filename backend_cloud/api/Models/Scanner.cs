@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RfidWarehouseApi.Models;
 
-[Table("Scanners")]
+[Table("Scanner")]
 public class Scanner
 {
     [Key]
@@ -12,13 +12,15 @@ public class Scanner
 
     [Required]
     [MaxLength(255)]
-    [Column("device_id_string")]
-    public string DeviceIdString { get; set; } = string.Empty;
+    [Column("device_id")]
+    public string DeviceId { get; set; } = string.Empty;
 
-    [Required]
     [MaxLength(255)]
-    [Column("location_name")]
-    public string LocationName { get; set; } = string.Empty;
+    [Column("name")]
+    public string? Name { get; set; }
+
+    [Column("status")]
+    public string? Status { get; set; }
 
     // Navigation properties
     public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();

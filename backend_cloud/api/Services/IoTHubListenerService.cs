@@ -97,7 +97,7 @@ public class IoTHubListenerService : BackgroundService
 
             // Get scanner info
             var scanner = await context.Scanners
-                .FirstOrDefaultAsync(s => s.DeviceIdString == scanData.DeviceId);
+                .FirstOrDefaultAsync(s => s.DeviceId == scanData.DeviceId);
 
             if (scanner == null)
             {

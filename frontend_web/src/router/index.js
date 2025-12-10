@@ -4,7 +4,10 @@ import { useAuthStore } from '../stores/authStore'
 const routes = [
   {
     path: '/',
-    redirect: '/dashboard'
+    redirect: (to) => {
+      const authStore = useAuthStore()
+      return authStore.user?.role === 'Admin' ? '/dashboard' : '/kiosk'
+    }
   },
   {
     path: '/login',
@@ -51,14 +54,30 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
+  
+  console.log('Router guard - navigating to:', to.path)
+  console.log('User:', authStore.user)
+  console.log('User role:', authStore.user?.role)
 
+  // Check authentication
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/login')
-  } else if (to.meta.requiresAdmin && authStore.user?.role !== 'Admin') {
+  } 
+  // Check admin access - only block non-admins from admin routes
+  else if (to.meta.requiresAdmin && authStore.user?.role !== 'Admin') {
+    console.log('Blocking access to admin route, redirecting to kiosk')
     next('/kiosk')
-  } else if (to.path === '/login' && authStore.isAuthenticated) {
-    next('/dashboard')
-  } else {
+  } 
+  // Redirect logged-in users away from login page
+  else if (to.path === '/login' && authStore.isAuthenticated) {
+    if (authStore.user?.role === 'Admin') {
+      next('/dashboard')
+    } else {
+      next('/kiosk')
+    }
+  } 
+  // Allow navigation (admins can access all routes, users can access their routes)
+  else {
     next()
   }
 })

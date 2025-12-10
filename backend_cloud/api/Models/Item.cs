@@ -32,6 +32,9 @@ public class Item
     [Column("last_updated")]
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 
+    [Column("notes")]
+    public string? Notes { get; set; }
+
     // Navigation properties
     [ForeignKey("CurrentHolderId")]
     public virtual User? CurrentHolder { get; set; }

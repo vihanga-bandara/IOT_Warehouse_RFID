@@ -45,6 +45,10 @@ namespace RfidWarehouseApi.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("last_updated");
 
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("notes");
+
                     b.Property<string>("RfidUid")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -69,7 +73,7 @@ namespace RfidWarehouseApi.Migrations
                         {
                             ItemId = 1,
                             ItemName = "Power Drill",
-                            LastUpdated = new DateTime(2025, 12, 9, 23, 7, 43, 452, DateTimeKind.Utc).AddTicks(2577),
+                            LastUpdated = new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1590),
                             RfidUid = "RFID001234567890",
                             Status = 0
                         },
@@ -77,7 +81,7 @@ namespace RfidWarehouseApi.Migrations
                         {
                             ItemId = 2,
                             ItemName = "Hammer",
-                            LastUpdated = new DateTime(2025, 12, 9, 23, 7, 43, 452, DateTimeKind.Utc).AddTicks(2579),
+                            LastUpdated = new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1593),
                             RfidUid = "RFID001234567891",
                             Status = 0
                         },
@@ -85,7 +89,7 @@ namespace RfidWarehouseApi.Migrations
                         {
                             ItemId = 3,
                             ItemName = "Screwdriver Set",
-                            LastUpdated = new DateTime(2025, 12, 9, 23, 7, 43, 452, DateTimeKind.Utc).AddTicks(2581),
+                            LastUpdated = new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1594),
                             RfidUid = "RFID001234567892",
                             Status = 0
                         },
@@ -93,7 +97,7 @@ namespace RfidWarehouseApi.Migrations
                         {
                             ItemId = 4,
                             ItemName = "Measuring Tape",
-                            LastUpdated = new DateTime(2025, 12, 9, 23, 7, 43, 452, DateTimeKind.Utc).AddTicks(2582),
+                            LastUpdated = new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1596),
                             RfidUid = "RFID001234567893",
                             Status = 0
                         },
@@ -101,9 +105,46 @@ namespace RfidWarehouseApi.Migrations
                         {
                             ItemId = 5,
                             ItemName = "Wrench Set",
-                            LastUpdated = new DateTime(2025, 12, 9, 23, 7, 43, 452, DateTimeKind.Utc).AddTicks(2583),
+                            LastUpdated = new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1597),
                             RfidUid = "RFID001234567894",
                             Status = 0
+                        });
+                });
+
+            modelBuilder.Entity("RfidWarehouseApi.Models.Role", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("role_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RoleId"));
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("RoleName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("role_name");
+
+                    b.HasKey("RoleId");
+
+                    b.ToTable("Role");
+
+                    b.HasData(
+                        new
+                        {
+                            RoleId = 1,
+                            Description = "Administrator with full access",
+                            RoleName = "Admin"
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            Description = "Regular user with limited access",
+                            RoleName = "User"
                         });
                 });
 
@@ -116,31 +157,35 @@ namespace RfidWarehouseApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ScannerId"));
 
-                    b.Property<string>("DeviceIdString")
+                    b.Property<string>("DeviceId")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)")
-                        .HasColumnName("device_id_string");
+                        .HasColumnName("device_id");
 
-                    b.Property<string>("LocationName")
-                        .IsRequired()
+                    b.Property<string>("Name")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)")
-                        .HasColumnName("location_name");
+                        .HasColumnName("name");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("status");
 
                     b.HasKey("ScannerId");
 
-                    b.HasIndex("DeviceIdString")
+                    b.HasIndex("DeviceId")
                         .IsUnique();
 
-                    b.ToTable("Scanners");
+                    b.ToTable("Scanner");
 
                     b.HasData(
                         new
                         {
                             ScannerId = 1,
-                            DeviceIdString = "rpi-scanner-01",
-                            LocationName = "Main Warehouse Entrance"
+                            DeviceId = "rpi-scanner-01",
+                            Name = "Main Warehouse Entrance",
+                            Status = "active"
                         });
                 });
 
@@ -157,8 +202,10 @@ namespace RfidWarehouseApi.Migrations
                         .HasColumnType("int")
                         .HasColumnName("action");
 
-                    b.Property<int>("DeviceId")
-                        .HasColumnType("int")
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
                         .HasColumnName("device_id");
 
                     b.Property<int>("ItemId")
@@ -228,10 +275,6 @@ namespace RfidWarehouseApi.Migrations
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("rfid_tag_uid");
 
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int")
-                        .HasColumnName("role_id");
-
                     b.HasKey("UserId");
 
                     b.HasIndex("Email")
@@ -248,8 +291,7 @@ namespace RfidWarehouseApi.Migrations
                             Email = "admin@warehouse.com",
                             Lastname = "User",
                             Name = "Admin",
-                            PasswordHash = "$2a$11$zSORvuaSdTGCnZrKnqMIqevxhWgClBa/1cBWEUAYYssz3wZmME8Ai",
-                            RoleId = 1
+                            PasswordHash = "$2a$11$DypCtv8nu6am5dm3WZEhDu4dxjz//vn0OERzfRtFab8Prturp1jA2"
                         },
                         new
                         {
@@ -257,7 +299,38 @@ namespace RfidWarehouseApi.Migrations
                             Email = "john.doe@warehouse.com",
                             Lastname = "Doe",
                             Name = "John",
-                            PasswordHash = "$2a$11$x5y0/osEkY8EWBICD455nuB1lK/41fin0Yet1sPNk1eAaiJdEvpLK",
+                            PasswordHash = "$2a$11$UCxkT7ZgRwwUr4Mg5syDNe.x/OJOHKuqEbLw1yHW99dFARiBfJAgK"
+                        });
+                });
+
+            modelBuilder.Entity("RfidWarehouseApi.Models.UserRight", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int")
+                        .HasColumnName("role_id");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex(new[] { "UserId", "RoleId" }, "user_id,role_id")
+                        .IsUnique();
+
+                    b.ToTable("UserRight");
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = 1,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            UserId = 2,
                             RoleId = 2
                         });
                 });
@@ -277,6 +350,7 @@ namespace RfidWarehouseApi.Migrations
                     b.HasOne("RfidWarehouseApi.Models.Scanner", "Scanner")
                         .WithMany("Transactions")
                         .HasForeignKey("DeviceId")
+                        .HasPrincipalKey("DeviceId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -299,9 +373,33 @@ namespace RfidWarehouseApi.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("RfidWarehouseApi.Models.UserRight", b =>
+                {
+                    b.HasOne("RfidWarehouseApi.Models.Role", "Role")
+                        .WithMany("UserRights")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RfidWarehouseApi.Models.User", "User")
+                        .WithMany("UserRights")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("RfidWarehouseApi.Models.Item", b =>
                 {
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("RfidWarehouseApi.Models.Role", b =>
+                {
+                    b.Navigation("UserRights");
                 });
 
             modelBuilder.Entity("RfidWarehouseApi.Models.Scanner", b =>
@@ -314,6 +412,8 @@ namespace RfidWarehouseApi.Migrations
                     b.Navigation("Items");
 
                     b.Navigation("Transactions");
+
+                    b.Navigation("UserRights");
                 });
 #pragma warning restore 612, 618
         }
