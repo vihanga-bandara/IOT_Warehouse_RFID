@@ -113,7 +113,12 @@ export default {
 
       try {
         await authStore.login(email.value, password.value)
-        router.push('/dashboard')
+        // Redirect based on user role
+        if (authStore.user?.role === 'Admin') {
+          router.push('/dashboard')
+        } else {
+          router.push('/kiosk')
+        }
       } catch (err) {
         error.value = err.response?.data?.message || 'Login failed. Please check your credentials.'
       } finally {

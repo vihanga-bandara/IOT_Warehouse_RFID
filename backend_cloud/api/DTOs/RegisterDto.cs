@@ -22,5 +22,5 @@ public class RegisterDto
 
     public string? RfidTagUid { get; set; }
 
-    public int RoleId { get; set; } = 2; // Default to regular user role
+    public List<int>? RoleIds { get; set; } // Defaults to [2] (User role) if not provided
 }

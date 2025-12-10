@@ -7,5 +7,5 @@ public class AuthResponseDto
     public string Name { get; set; } = string.Empty;
     public string Lastname { get; set; } = string.Empty;
     public int UserId { get; set; }
-    public int RoleId { get; set; }
+    public List<int> RoleIds { get; set; } = new List<int>();
 }

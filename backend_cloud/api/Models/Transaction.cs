@@ -19,8 +19,9 @@ public class Transaction
     public int ItemId { get; set; }
 
     [Required]
+    [MaxLength(255)]
     [Column("device_id")]
-    public int DeviceId { get; set; }
+    public string DeviceId { get; set; } = string.Empty;
 
     [Required]
     [Column("action")]
@@ -40,5 +41,5 @@ public class Transaction
     public virtual Item Item { get; set; } = null!;
 
     [ForeignKey("DeviceId")]
-    public virtual Scanner Scanner { get; set; } = null!;
+    public virtual Scanner? Scanner { get; set; }
 }

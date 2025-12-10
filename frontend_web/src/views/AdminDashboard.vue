@@ -6,6 +6,14 @@
           <h1>Admin Dashboard</h1>
           <p class="page-subtitle">Warehouse Inventory Overview</p>
         </div>
+        <button @click="handleLogout" class="logout-btn" title="Logout">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Logout
+        </button>
       </div>
 
       <nav class="admin-nav">
@@ -117,11 +125,15 @@
 
 <script>
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/authStore'
 import api from '../services/api'
 
 export default {
   name: 'AdminDashboard',
   setup() {
+    const router = useRouter()
+    const authStore = useAuthStore()
     const items = ref([])
     const loading = ref(true)
 
@@ -146,6 +158,11 @@ export default {
       }
     }
 
+    const handleLogout = () => {
+      authStore.logout()
+      router.push('/login')
+    }
+
     const formatDate = (timestamp) => {
       return new Date(timestamp).toLocaleDateString()
     }
@@ -160,7 +177,8 @@ export default {
       borrowedItems,
       totalItems,
       availableItems,
-      formatDate
+      formatDate,
+      handleLogout
     }
   }
 }
@@ -180,6 +198,9 @@ export default {
 }
 
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2.5rem;
   animation: slideDown 0.4s ease-out;
 }
@@ -208,6 +229,37 @@ export default {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 500;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.logout-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.logout-btn:hover svg {
+  transform: translateX(2px);
 }
 
 @media (max-width: 600px) {

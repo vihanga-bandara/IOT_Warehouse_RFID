@@ -8,23 +8,39 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace RfidWarehouseApi.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class UpdateSchemaWithCorrectTypes : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Scanners",
+                name: "Role",
+                columns: table => new
+                {
+                    role_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    role_name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    description = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Role", x => x.role_id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Scanner",
                 columns: table => new
                 {
                     scanner_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    device_id_string = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    location_name = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false)
+                    device_id = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    name = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    status = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Scanners", x => x.scanner_id);
+                    table.PrimaryKey("PK_Scanner", x => x.scanner_id);
+                    table.UniqueConstraint("AK_Scanner_device_id", x => x.device_id);
                 });
 
             migrationBuilder.CreateTable(
@@ -37,8 +53,7 @@ namespace RfidWarehouseApi.Migrations
                     password_hash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     rfid_tag_uid = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    lastname = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    role_id = table.Column<int>(type: "int", nullable: false)
+                    lastname = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -55,7 +70,8 @@ namespace RfidWarehouseApi.Migrations
                     item_name = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     status = table.Column<int>(type: "int", nullable: false),
                     current_holder_id = table.Column<int>(type: "int", nullable: true),
-                    last_updated = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    last_updated = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    notes = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -69,6 +85,30 @@ namespace RfidWarehouseApi.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserRight",
+                columns: table => new
+                {
+                    user_id = table.Column<int>(type: "int", nullable: false),
+                    role_id = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserRight", x => new { x.user_id, x.role_id });
+                    table.ForeignKey(
+                        name: "FK_UserRight_Role_role_id",
+                        column: x => x.role_id,
+                        principalTable: "Role",
+                        principalColumn: "role_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserRight_Users_user_id",
+                        column: x => x.user_id,
+                        principalTable: "Users",
+                        principalColumn: "user_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Transactions",
                 columns: table => new
                 {
@@ -76,7 +116,7 @@ namespace RfidWarehouseApi.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     user_id = table.Column<int>(type: "int", nullable: false),
                     item_id = table.Column<int>(type: "int", nullable: false),
-                    device_id = table.Column<int>(type: "int", nullable: false),
+                    device_id = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     action = table.Column<int>(type: "int", nullable: false),
                     timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
                     notes = table.Column<string>(type: "nvarchar(max)", nullable: true)
@@ -91,10 +131,10 @@ namespace RfidWarehouseApi.Migrations
                         principalColumn: "item_id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Transactions_Scanners_device_id",
+                        name: "FK_Transactions_Scanner_device_id",
                         column: x => x.device_id,
-                        principalTable: "Scanners",
-                        principalColumn: "scanner_id",
+                        principalTable: "Scanner",
+                        principalColumn: "device_id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Transactions_Users_user_id",
@@ -106,28 +146,46 @@ namespace RfidWarehouseApi.Migrations
 
             migrationBuilder.InsertData(
                 table: "Items",
-                columns: new[] { "item_id", "current_holder_id", "item_name", "last_updated", "rfid_uid", "status" },
+                columns: new[] { "item_id", "current_holder_id", "item_name", "last_updated", "notes", "rfid_uid", "status" },
                 values: new object[,]
                 {
-                    { 1, null, "Power Drill", new DateTime(2025, 12, 9, 23, 7, 43, 452, DateTimeKind.Utc).AddTicks(2577), "RFID001234567890", 0 },
-                    { 2, null, "Hammer", new DateTime(2025, 12, 9, 23, 7, 43, 452, DateTimeKind.Utc).AddTicks(2579), "RFID001234567891", 0 },
-                    { 3, null, "Screwdriver Set", new DateTime(2025, 12, 9, 23, 7, 43, 452, DateTimeKind.Utc).AddTicks(2581), "RFID001234567892", 0 },
-                    { 4, null, "Measuring Tape", new DateTime(2025, 12, 9, 23, 7, 43, 452, DateTimeKind.Utc).AddTicks(2582), "RFID001234567893", 0 },
-                    { 5, null, "Wrench Set", new DateTime(2025, 12, 9, 23, 7, 43, 452, DateTimeKind.Utc).AddTicks(2583), "RFID001234567894", 0 }
+                    { 1, null, "Power Drill", new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1590), null, "RFID001234567890", 0 },
+                    { 2, null, "Hammer", new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1593), null, "RFID001234567891", 0 },
+                    { 3, null, "Screwdriver Set", new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1594), null, "RFID001234567892", 0 },
+                    { 4, null, "Measuring Tape", new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1596), null, "RFID001234567893", 0 },
+                    { 5, null, "Wrench Set", new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1597), null, "RFID001234567894", 0 }
                 });
 
             migrationBuilder.InsertData(
-                table: "Scanners",
-                columns: new[] { "scanner_id", "device_id_string", "location_name" },
-                values: new object[] { 1, "rpi-scanner-01", "Main Warehouse Entrance" });
+                table: "Role",
+                columns: new[] { "role_id", "description", "role_name" },
+                values: new object[,]
+                {
+                    { 1, "Administrator with full access", "Admin" },
+                    { 2, "Regular user with limited access", "User" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Scanner",
+                columns: new[] { "scanner_id", "device_id", "name", "status" },
+                values: new object[] { 1, "rpi-scanner-01", "Main Warehouse Entrance", "active" });
 
             migrationBuilder.InsertData(
                 table: "Users",
-                columns: new[] { "user_id", "email", "lastname", "name", "password_hash", "rfid_tag_uid", "role_id" },
+                columns: new[] { "user_id", "email", "lastname", "name", "password_hash", "rfid_tag_uid" },
                 values: new object[,]
                 {
-                    { 1, "admin@warehouse.com", "User", "Admin", "$2a$11$zSORvuaSdTGCnZrKnqMIqevxhWgClBa/1cBWEUAYYssz3wZmME8Ai", null, 1 },
-                    { 2, "john.doe@warehouse.com", "Doe", "John", "$2a$11$x5y0/osEkY8EWBICD455nuB1lK/41fin0Yet1sPNk1eAaiJdEvpLK", null, 2 }
+                    { 1, "admin@warehouse.com", "User", "Admin", "$2a$11$DypCtv8nu6am5dm3WZEhDu4dxjz//vn0OERzfRtFab8Prturp1jA2", null },
+                    { 2, "john.doe@warehouse.com", "Doe", "John", "$2a$11$UCxkT7ZgRwwUr4Mg5syDNe.x/OJOHKuqEbLw1yHW99dFARiBfJAgK", null }
+                });
+
+            migrationBuilder.InsertData(
+                table: "UserRight",
+                columns: new[] { "role_id", "user_id" },
+                values: new object[,]
+                {
+                    { 1, 1 },
+                    { 2, 2 }
                 });
 
             migrationBuilder.CreateIndex(
@@ -142,9 +200,9 @@ namespace RfidWarehouseApi.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Scanners_device_id_string",
-                table: "Scanners",
-                column: "device_id_string",
+                name: "IX_Scanner_device_id",
+                table: "Scanner",
+                column: "device_id",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -168,6 +226,17 @@ namespace RfidWarehouseApi.Migrations
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserRight_role_id",
+                table: "UserRight",
+                column: "role_id");
+
+            migrationBuilder.CreateIndex(
+                name: "user_id,role_id",
+                table: "UserRight",
+                columns: new[] { "user_id", "role_id" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Users_email",
                 table: "Users",
                 column: "email",
@@ -186,10 +255,16 @@ namespace RfidWarehouseApi.Migrations
                 name: "Transactions");
 
             migrationBuilder.DropTable(
+                name: "UserRight");
+
+            migrationBuilder.DropTable(
                 name: "Items");
 
             migrationBuilder.DropTable(
-                name: "Scanners");
+                name: "Scanner");
+
+            migrationBuilder.DropTable(
+                name: "Role");
 
             migrationBuilder.DropTable(
                 name: "Users");

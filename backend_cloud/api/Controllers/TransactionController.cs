@@ -45,7 +45,7 @@ public class TransactionController : ControllerBase
         try
         {
             var scanner = await _context.Scanners
-                .FirstOrDefaultAsync(s => s.DeviceIdString == dto.DeviceId);
+                .FirstOrDefaultAsync(s => s.DeviceId == dto.DeviceId);
 
             if (scanner == null)
             {
@@ -97,7 +97,7 @@ public class TransactionController : ControllerBase
                 {
                     UserId = userId,
                     ItemId = item.ItemId,
-                    DeviceId = scanner.ScannerId,
+                    DeviceId = scanner.DeviceId,
                     Action = cartItem.Action == "Borrow" ? TransactionAction.Checkout : TransactionAction.Checkin,
                     Timestamp = DateTime.UtcNow,
                     Notes = dto.Notes
@@ -163,7 +163,7 @@ public class TransactionController : ControllerBase
                 },
                 Scanner = new
                 {
-                    t.Scanner.LocationName
+                    t.Scanner.Name
                 }
             })
             .ToListAsync();
@@ -205,8 +205,9 @@ public class TransactionController : ControllerBase
                 },
                 Scanner = new
                 {
-                    t.Scanner.ScannerId,
-                    t.Scanner.LocationName
+                    t.Scanner!.ScannerId,
+                    t.Scanner.DeviceId,
+                    t.Scanner.Name
                 },
                 t.Notes
             })

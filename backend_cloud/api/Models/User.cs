@@ -34,10 +34,8 @@ public class User
     [Column("lastname")]
     public string Lastname { get; set; } = string.Empty;
 
-    [Column("role_id")]
-    public int RoleId { get; set; }
-
     // Navigation properties
     public virtual ICollection<Item> Items { get; set; } = new List<Item>();
     public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
+    public virtual ICollection<UserRight> UserRights { get; set; } = new List<UserRight>();
 }
