@@ -178,9 +178,11 @@ export default {
       return isBorrowed(item)
     }
 
-    const borrowedItems = computed(() =>
-      items.value.filter(item => derivedBorrowState(item))
-    )
+    const borrowedItems = computed(() => {
+      const borrowed = items.value.filter(item => derivedBorrowState(item))
+      console.log('Borrowed items count:', borrowed.length)
+      return borrowed
+    })
 
     const totalItems = computed(() => items.value.length)
 
@@ -194,6 +196,10 @@ export default {
       try {
         const response = await api.get('/items')
         items.value = response.data
+        console.log('Fetched items:', items.value)
+        items.value.forEach(item => {
+          console.log(`Item ${item.itemName}: status=${item.status}, id=${item.id}`)
+        })
       } catch (err) {
         console.error('Failed to fetch items:', err)
       }
