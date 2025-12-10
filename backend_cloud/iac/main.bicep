@@ -158,3 +158,9 @@ output appServiceUrl string = 'https://${appService.properties.defaultHostName}'
 output sqlServerName string = sqlServer.properties.fullyQualifiedDomainName
 output sqlDatabaseName string = sqlDatabase.name
 output resourceGroupName string = resourceGroup().name
+
+// Connection strings for App Service configuration (secure outputs)
+@secure()
+output sqlConnectionString string = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabase.name};Persist Security Info=False;User ID=${sqlAdminUsername};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+@secure()
+output iotHubEventHubConnectionString string = 'Endpoint=${iotHub.properties.eventHubEndpoints.events.endpoint};SharedAccessKeyName=service;SharedAccessKey=${listKeys(resourceId('Microsoft.Devices/IotHubs/IotHubKeys', iotHub.name, 'service'), iotHub.apiVersion).primaryKey};EntityPath=${iotHub.properties.eventHubEndpoints.events.path}'
