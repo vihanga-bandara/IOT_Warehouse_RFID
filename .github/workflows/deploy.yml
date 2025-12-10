@@ -148,11 +148,18 @@ jobs:
         uses: azure/cli@v1
         with:
           inlineScript: |
+            # Set SQL connection string in Connection Strings section
+            az webapp config connection-string set \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --name "${{ steps.get-app-name.outputs.app-name }}" \
+              --connection-string-type SQLAzure \
+              --settings DefaultConnection="${{ steps.get-connections.outputs.sql-connection }}"
+            
+            # Set IoT Hub and JWT in App Settings (nested config keys use double underscores)
             az webapp config appsettings set \
               --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
               --name "${{ steps.get-app-name.outputs.app-name }}" \
               --settings \
-                "ConnectionStrings__DefaultConnection=${{ steps.get-connections.outputs.sql-connection }}" \
                 "IoTHub__EventHubConnectionString=${{ steps.get-connections.outputs.iot-connection }}" \
                 "Jwt__SecretKey=${{ secrets.JWT_SECRET_KEY }}"
 
