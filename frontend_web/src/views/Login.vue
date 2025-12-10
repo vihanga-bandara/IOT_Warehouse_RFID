@@ -137,9 +137,15 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
   background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 50%, var(--accent-green) 100%);
-  padding: 1rem;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
 .login-card {
@@ -149,6 +155,7 @@ export default {
   box-shadow: 0 20px 60px rgba(0, 61, 107, 0.25);
   width: 100%;
   max-width: 440px;
+  margin: 1rem;
   animation: slideUp 0.4s ease-out;
 }
 
