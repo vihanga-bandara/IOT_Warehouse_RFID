@@ -1,6 +1,6 @@
 // Azure Infrastructure as Code - Bicep template
 // IoT Warehouse RFID Project Infrastructure
-// Deploys: IoT Hub (Free), App Service (F1), SQL Database (Serverless Free), Storage Account
+// Deploys: IoT Hub (Free), App Service (F1), SQL Database (Serverless Free)
 
 // Parameters
 param location string = 'westeurope'
@@ -20,9 +20,7 @@ var appServiceName = '${resourcePrefix}-app-${uniqueSuffix}'
 var appServicePlanName = '${resourcePrefix}-plan'
 var sqlServerName = '${resourcePrefix}-sqlserver-${uniqueSuffix}'
 var sqlDbName = '${resourcePrefix}-db'
-var storageAccountName = '${replace(resourcePrefix, '-', '')}st${uniqueString(resourceGroup().id)}'
 var keyVaultName = '${resourcePrefix}-kv-${uniqueSuffix}'
-var appInsightsName = '${resourcePrefix}-insights'
 
 // Tags
 var commonTags = {
@@ -175,47 +173,7 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   }
 }
 
-// ===== Storage Account (for backups/logging) =====
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-  name: storageAccountName
-  location: location
-  tags: commonTags
-  kind: 'StorageV2'
-  sku: {
-    name: 'Standard_LRS'
-  }
-  properties: {
-    accessTier: 'Hot'
-    minimumTlsVersion: 'TLS1_2'
-    supportsHttpsTrafficOnly: true
-  }
 
-  // Create blob container
-  resource blobService 'blobServices' = {
-    name: 'default'
-
-    resource container 'containers' = {
-      name: 'logs'
-      properties: {
-        publicAccess: 'None'
-      }
-    }
-  }
-}
-
-// ===== Application Insights =====
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: appInsightsName
-  location: location
-  tags: commonTags
-  kind: 'web'
-  properties: {
-    Application_Type: 'web'
-    RetentionInDays: 30
-    publicNetworkAccessForIngestion: 'Enabled'
-    publicNetworkAccessForQuery: 'Enabled'
-  }
-}
 
 // ===== Outputs =====
 output iotHubHostName string = iotHub.properties.hostName
@@ -223,6 +181,4 @@ output iotHubConnectionString string = 'Endpoint=${iotHub.properties.eventHubEnd
 output appServiceUrl string = 'https://${appService.properties.defaultHostName}'
 output sqlServerName string = sqlServer.properties.fullyQualifiedDomainName
 output sqlDatabaseName string = sqlDatabase.name
-output storageAccountName string = storageAccount.name
-output appInsightsInstrumentationKey string = appInsights.properties.InstrumentationKey
 output resourceGroupName string = resourceGroup().name
