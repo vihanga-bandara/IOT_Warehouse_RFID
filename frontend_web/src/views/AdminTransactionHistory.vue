@@ -117,15 +117,18 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '../services/api'
 
 export default {
   name: 'AdminTransactionHistory',
   setup() {
+    const route = useRoute()
     const transactions = ref([])
     const loading = ref(true)
     const filterAction = ref('')
     const filterUser = ref('')
+    const userIdFilter = ref(route.query.userId ? parseInt(route.query.userId) : null)
 
     const filteredTransactions = computed(() => {
       return transactions.value.filter(tx => {
