@@ -129,16 +129,34 @@ jobs:
         uses: azure/cli@v1
         with:
           inlineScript: |
-            SQL_CONN=$(az deployment group show \
+            # Get SQL Server info from deployment outputs
+            SQL_SERVER=$(az deployment group show \
               --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
               --name main \
-              --query properties.outputs.sqlConnectionString.value \
+              --query properties.outputs.sqlServerName.value \
               --output tsv)
             
-            IOT_CONN=$(az deployment group show \
+            SQL_DB=$(az deployment group show \
               --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
               --name main \
-              --query properties.outputs.iotHubEventHubConnectionString.value \
+              --query properties.outputs.sqlDatabaseName.value \
+              --output tsv)
+            
+            # Get IoT Hub info
+            IOT_HUB_NAME=$(az deployment group show \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --name main \
+              --query properties.outputs.iotHubHostName.value \
+              --output tsv | cut -d'.' -f1)
+            
+            # Build connection strings using secrets
+            SQL_CONN="Server=tcp:${SQL_SERVER},1433;Initial Catalog=${SQL_DB};Persist Security Info=False;User ID=${{ secrets.SQL_ADMIN_USERNAME }};Password=${{ secrets.SQL_ADMIN_PASSWORD }};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+            
+            # Get IoT Hub connection string using Azure CLI
+            IOT_CONN=$(az iot hub connection-string show \
+              --hub-name "$IOT_HUB_NAME" \
+              --policy-name service \
+              --query connectionString \
               --output tsv)
             
             echo "sql-connection=$SQL_CONN" >> $GITHUB_OUTPUT
