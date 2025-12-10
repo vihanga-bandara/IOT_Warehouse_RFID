@@ -1,6 +1,6 @@
 <template>
   <div class="kiosk-page">
-    <div class="kiosk-container">
+    <div class="kiosk-container surface-card surface-card--padded">
       <div class="kiosk-header">
         <div class="header-content">
           <h1>
@@ -24,13 +24,13 @@
         </button>
       </div>
 
-      <div class="cart-display">
+      <div class="cart-display surface-card surface-card--padded">
         <div class="cart-header">
           <h2>Current Cart</h2>
           <span class="item-badge">{{ cartStore.itemCount }} items</span>
         </div>
 
-        <div v-if="cartStore.itemCount === 0" class="empty-cart">
+        <div v-if="cartStore.itemCount === 0" class="empty-cart surface-card surface-card--padded">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
           </svg>
@@ -39,7 +39,7 @@
         </div>
 
         <div v-else class="cart-items">
-          <div v-if="cartStore.borrowItems.length > 0" class="items-section">
+          <div v-if="cartStore.borrowItems.length > 0" class="items-section surface-card surface-card--padded">
             <div class="section-header">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/>
@@ -59,7 +59,7 @@
             </div>
           </div>
 
-          <div v-if="cartStore.returnItems.length > 0" class="items-section">
+          <div v-if="cartStore.returnItems.length > 0" class="items-section surface-card surface-card--padded">
             <div class="section-header">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M1 4v6h6M23 20v-6h-6"/>
@@ -344,10 +344,6 @@ export default {
 }
 
 .cart-display {
-  background: linear-gradient(135deg, rgba(0, 61, 107, 0.02) 0%, rgba(80, 200, 120, 0.02) 100%);
-  border: 2px solid var(--border-color);
-  border-radius: 14px;
-  padding: 1.5rem;
   margin-bottom: 2rem;
   min-height: 300px;
   display: flex;
@@ -521,7 +517,6 @@ export default {
 
   .cart-display {
     min-height: 250px;
-    padding: 1rem;
   }
 
   .cart-items {

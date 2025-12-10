@@ -259,6 +259,63 @@ label {
   padding: 0;
 }
 
+// Surfaces & cards
+.surface-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-fast);
+}
+
+[data-theme="dark"] .surface-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: var(--shadow-md);
+}
+
+.surface-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.surface-card--padded {
+  padding: var(--spacing-lg) 1.5rem;
+}
+
+.surface-card--compact {
+  padding: var(--spacing-md) 1.25rem;
+}
+
+// Ghost buttons used for lightweight actions (e.g., clear)
+.button-ghost {
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--dark-text);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 1rem;
+  font-weight: var(--weight-semibold);
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.button-ghost:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: var(--primary-light);
+  color: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .button-ghost {
+  background: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .button-ghost:hover:not(:disabled) {
+  background: #0f172a;
+  border-color: #475569;
+  color: #a5b4fc;
+}
+
 .rounded-sm {
   border-radius: var(--radius-sm);
 }

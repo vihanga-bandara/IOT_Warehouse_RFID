@@ -21,6 +21,12 @@
           </svg>
           Dashboard
         </router-link>
+        <router-link to="/admin/items" class="nav-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="16" rx="2" ry="2"/><path d="M3 10h18"/>
+          </svg>
+          Items
+        </router-link>
         <router-link to="/admin/transactions" class="nav-link active">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"/><path d="M12 6v6l4 2"/>
@@ -35,37 +41,30 @@
         </router-link>
       </nav>
 
-      <div class="filters-section">
+      <div class="filters-bar surface-card surface-card--padded">
         <div class="filter-group">
-          <label for="filter-action">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
-            </svg>
-            Filter by Action
-          </label>
+          <label for="filter-action">Filter by action</label>
           <input
             id="filter-action"
             v-model="filterAction"
             type="text"
-            placeholder="Checkout or Checkin..."
+            placeholder="Search borrowed, returned, etc."
             class="filter-input"
           />
         </div>
         <div class="filter-group">
-          <label for="filter-user">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-            Filter by User
-          </label>
+          <label for="filter-user">Filter by user</label>
           <input
             id="filter-user"
             v-model="filterUser"
             type="text"
-            placeholder="Search user..."
+            placeholder="Search by name or email"
             class="filter-input"
           />
         </div>
+        <button class="clear-filter-btn button-ghost" @click="clearFilters" v-if="filterAction || filterUser">
+          Clear
+        </button>
       </div>
 
       <div v-if="loading" class="loading-state">
@@ -100,8 +99,8 @@
                 <td class="item-cell">{{ tx.itemName }}</td>
                 <td class="user-cell">{{ tx.userName }}</td>
                 <td class="action-cell">
-                  <span :class="['action-badge', tx.action.toLowerCase()]">
-                    {{ tx.action }}
+                  <span :class="['action-badge', actionClass(tx.action)]">
+                    {{ actionLabel(tx.action) }}
                   </span>
                 </td>
                 <td class="scanner-cell">{{ tx.deviceName }}</td>
@@ -131,12 +130,14 @@ export default {
     const userIdFilter = ref(route.query.userId ? parseInt(route.query.userId) : null)
 
     const filteredTransactions = computed(() => {
+      const actionTerm = filterAction.value.trim().toLowerCase()
+      const userTerm = filterUser.value.trim().toLowerCase()
+
       return transactions.value.filter(tx => {
-        const actionMatch = !filterAction.value ||
-          tx.action.toLowerCase().includes(filterAction.value.toLowerCase())
-        const userMatch = !filterUser.value ||
-          tx.userName.toLowerCase().includes(filterUser.value.toLowerCase())
-        return actionMatch && userMatch
+        const actionMatch = !actionTerm || tx.action.toLowerCase().includes(actionTerm)
+        const userMatch = !userTerm || tx.userName.toLowerCase().includes(userTerm)
+        const userIdMatch = !userIdFilter.value || tx.userId === userIdFilter.value
+        return actionMatch && userMatch && userIdMatch
       })
     })
 
@@ -149,6 +150,7 @@ export default {
         transactions.value = list.map((tx, idx) => ({
           id: tx.transactionId ?? tx.id ?? idx,
           itemName: tx.item?.itemName ?? 'Unknown item',
+          userId: tx.user?.id ?? tx.userId ?? null,
           userName: tx.user ? `${tx.user.name ?? ''} ${tx.user.lastname ?? ''}`.trim() || 'Unknown user' : 'Unknown user',
           action: tx.action ?? '',
           deviceName: tx.scanner?.name ?? tx.scanner?.deviceId ?? 'N/A',
@@ -165,6 +167,24 @@ export default {
       return new Date(timestamp).toLocaleString()
     }
 
+    const clearFilters = () => {
+      filterAction.value = ''
+      filterUser.value = ''
+    }
+
+    const actionLabel = (action) => {
+      const a = (action || '').toLowerCase()
+      if (a.includes('checkin') || a.includes('return')) return 'Returned'
+      if (a.includes('checkout') || a.includes('borrow')) return 'Borrowed'
+      return action || 'Borrowed'
+    }
+
+    const actionClass = (action) => {
+      const a = (action || '').toLowerCase()
+      if (a.includes('checkin') || a.includes('return')) return 'return'
+      return 'borrow'
+    }
+
     onMounted(() => {
       fetchTransactions()
     })
@@ -175,7 +195,10 @@ export default {
       filterAction,
       filterUser,
       filteredTransactions,
-      formatDate
+      clearFilters,
+      formatDate,
+      actionLabel,
+      actionClass
     }
   }
 }
@@ -340,59 +363,65 @@ export default {
   }
 }
 
-.filters-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+.filters-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
+  flex: 1;
 }
 
 .filter-group label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 0.9rem;
   color: var(--dark-text);
   font-weight: 600;
-  font-size: 0.9rem;
 }
 
-.filter-group label svg {
-  opacity: 0.7;
-  color: var(--primary-light);
+[data-theme="dark"] .filter-group label {
+  color: #cbd5e1;
 }
 
 .filter-input {
-  padding: 0.9rem 1rem;
-  border: 2px solid var(--border-color);
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  background: var(--bg-primary);
+  font-size: 0.95rem;
+  background: white;
   color: var(--dark-text);
-  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .filter-input:focus {
   outline: none;
   border-color: var(--primary-light);
-  background: #fafbfc;
-  box-shadow: 0 0 0 4px rgba(30, 144, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 125, 255, 0.15);
 }
 
-.filter-input::placeholder {
-  color: var(--text-tertiary);
+[data-theme="dark"] .filter-input {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
 }
 
-@media (max-width: 600px) {
-  .filter-input {
-    padding: 0.85rem 0.9rem;
-    font-size: 16px;
+.clear-filter-btn {
+  align-self: center;
+}
+
+@media (max-width: 700px) {
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .clear-filter-btn {
+    width: 100%;
   }
 }
 
@@ -537,21 +566,14 @@ export default {
   transition: all 0.3s ease;
 }
 
-.action-badge.checkout {
-  background: linear-gradient(135deg, var(--accent-green) 0%, #45a049 100%);
+.action-badge.borrow {
+  background: linear-gradient(135deg, var(--primary-light) 0%, #6ee7b7 100%);
   color: white;
-  box-shadow: 0 2px 8px rgba(80, 200, 120, 0.3);
 }
 
-.action-badge.checkin {
-  background: linear-gradient(135deg, #ffb300 0%, #ff9800 100%);
+.action-badge.return {
+  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
   color: white;
-  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
-}
-
-.date-cell {
-  font-size: 0.9rem;
-  color: var(--accent-gray);
 }
 
 @media (max-width: 800px) {

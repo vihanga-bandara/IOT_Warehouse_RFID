@@ -21,6 +21,12 @@
           </svg>
           Dashboard
         </router-link>
+        <router-link to="/admin/items" class="nav-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="16" rx="2" ry="2"/><path d="M3 10h18"/>
+          </svg>
+          Items
+        </router-link>
         <router-link to="/admin/transactions" class="nav-link">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"/><path d="M12 6v6l4 2"/>
@@ -137,8 +143,24 @@
       </div>
 
       <div v-else class="users-section">
+        <div class="filters-bar surface-card surface-card--padded">
+          <div class="filter-group">
+            <label for="user-filter">Filter users</label>
+            <input
+              id="user-filter"
+              v-model="userFilter"
+              type="text"
+              placeholder="Search by name, email, role, or RFID"
+              class="filter-input"
+            />
+          </div>
+          <button class="clear-filter-btn button-ghost" @click="userFilter = ''" v-if="userFilter">
+            Clear
+          </button>
+        </div>
+
         <div class="users-grid">
-          <div v-for="user in users" :key="user.id" class="user-card">
+          <div v-for="user in filteredUsers" :key="user.id" class="user-card">
             <div class="user-badge">{{ user.role }}</div>
             <h3 class="user-name">{{ user.name }} {{ user.lastname }}</h3>
             <div class="user-details">
@@ -184,19 +206,86 @@
         </div>
       </div>
     </div>
+
+    <!-- Transaction Modal -->
+    <transition name="modal-fade">
+      <div v-if="showTransactionModal" class="modal-overlay" @click="closeTransactionModal">
+        <div class="transaction-modal" @click.stop>
+          <button class="modal-close" @click="closeTransactionModal" aria-label="Close">
+            <span class="modal-close-icon">×</span>
+          </button>
+          
+          <div class="modal-header">
+            <h2>{{ selectedUser?.name }} {{ selectedUser?.lastname }}'s Transactions</h2>
+            <p class="modal-subtitle">{{ selectedUser?.email }}</p>
+          </div>
+
+          <div v-if="loadingTransactions" class="modal-loading">
+            <div class="spinner"></div>
+            <p>Loading transactions...</p>
+          </div>
+
+          <div v-else-if="userTransactions.length === 0" class="modal-empty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"/><path d="M12 6v6l4 2"/>
+            </svg>
+            <p>No transactions found</p>
+          </div>
+
+          <div v-else class="transactions-list">
+            <div v-for="transaction in userTransactions" :key="transaction.id" class="transaction-item">
+              <div class="transaction-header">
+                <div class="transaction-action" :class="actionClass(transaction.action)">
+                  <svg v-if="actionClass(transaction.action) === 'borrow'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/>
+                  </svg>
+                  <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 4v6h6M23 20v-6h-6"/>
+                  </svg>
+                  <span>{{ actionLabel(transaction.action) }}</span>
+                </div>
+                <div class="transaction-date">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  {{ formatDate(transaction.timestamp) }}
+                </div>
+              </div>
+              <div class="transaction-body">
+                <div class="transaction-info">
+                  <span class="info-label">Item:</span>
+                  <span class="info-value">{{ transaction.itemName }}</span>
+                </div>
+                <div class="transaction-info">
+                  <span class="info-label">Scanner:</span>
+                  <span class="info-value">{{ transaction.deviceName }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script>
-import { ref, onMounted} from 'vue'
+import { ref, computed, onMounted} from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../services/api'
 
 export default {
   name: 'AdminUserManagement',
   setup() {
+    const router = useRouter()
     const users = ref([])
     const loading = ref(true)
+    const userFilter = ref('')
     const showRegisterForm = ref(false)
+    const showTransactionModal = ref(false)
+    const selectedUser = ref(null)
+    const userTransactions = ref([])
+    const loadingTransactions = ref(false)
     const newUser = ref({
       email: '',
       password: '',
@@ -217,6 +306,20 @@ export default {
       }
     }
 
+    const filteredUsers = computed(() => {
+      const term = userFilter.value.trim().toLowerCase()
+      if (!term) return users.value
+      return users.value.filter(u => {
+        return (
+          (u.name && u.name.toLowerCase().includes(term)) ||
+          (u.lastname && u.lastname.toLowerCase().includes(term)) ||
+          (u.email && u.email.toLowerCase().includes(term)) ||
+          (u.role && u.role.toLowerCase().includes(term)) ||
+          (u.rfidUid && u.rfidUid.toLowerCase().includes(term))
+        )
+      })
+    })
+
     const registerUser = async () => {
       try {
         await api.post('/auth/register', newUser.value)
@@ -228,9 +331,51 @@ export default {
       }
     }
 
-    const viewUserTransactions = (userId) => {
-      // Navigate to transaction history filtered by user
-      window.location.href = `/admin/transactions?userId=${userId}`
+    const actionLabel = (action) => {
+      const a = (action || '').toLowerCase()
+      if (a.includes('checkin') || a.includes('return')) return 'Returned'
+      if (a.includes('checkout') || a.includes('borrow')) return 'Borrowed'
+      return action || 'Borrowed'
+    }
+
+    const actionClass = (action) => {
+      const a = (action || '').toLowerCase()
+      if (a.includes('checkin') || a.includes('return')) return 'return'
+      return 'borrow'
+    }
+
+    const viewUserTransactions = async (userId) => {
+      console.log('Viewing transactions for user:', userId)
+      selectedUser.value = users.value.find(u => u.id === userId)
+      showTransactionModal.value = true
+      loadingTransactions.value = true
+      
+      try {
+        const response = await api.get(`/auth/users/${userId}/transactions`)
+        userTransactions.value = response.data
+      } catch (err) {
+        console.error('Failed to fetch user transactions:', err)
+        userTransactions.value = []
+      } finally {
+        loadingTransactions.value = false
+      }
+    }
+
+    const closeTransactionModal = () => {
+      showTransactionModal.value = false
+      selectedUser.value = null
+      userTransactions.value = []
+    }
+
+    const formatDate = (dateString) => {
+      const date = new Date(dateString)
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     }
 
     onMounted(() => {
@@ -239,11 +384,21 @@ export default {
 
     return {
       users,
+      filteredUsers,
+      userFilter,
       loading,
       showRegisterForm,
+      showTransactionModal,
+      selectedUser,
+      userTransactions,
+      loadingTransactions,
       newUser,
       registerUser,
-      viewUserTransactions
+      actionLabel,
+      actionClass,
+      viewUserTransactions,
+      closeTransactionModal,
+      formatDate
     }
   }
 }
@@ -630,6 +785,68 @@ export default {
   animation: slideUp 0.4s ease-out;
 }
 
+.filters-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.filter-group label {
+  font-size: 0.9rem;
+  color: var(--dark-text);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .filter-group label {
+  color: #cbd5e1;
+}
+
+.filter-input {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  background: white;
+  color: var(--dark-text);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(0, 125, 255, 0.15);
+}
+
+[data-theme="dark"] .filter-input {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+.clear-filter-btn {
+  align-self: center;
+}
+
+@media (max-width: 700px) {
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .clear-filter-btn {
+    width: 100%;
+  }
+}
+
 .users-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -638,7 +855,7 @@ export default {
 }
 
 .user-card {
-  background: white;
+  background: var(--card-bg, white);
   border: 2px solid var(--border-color);
   border-radius: 12px;
   padding: 1.5rem;
@@ -646,6 +863,12 @@ export default {
   overflow: hidden;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 61, 107, 0.06);
+}
+
+[data-theme="dark"] .user-card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .user-card::before {
@@ -662,6 +885,10 @@ export default {
   border-color: var(--primary-light);
   box-shadow: 0 8px 24px rgba(30, 144, 255, 0.15);
   transform: translateY(-2px);
+}
+
+[data-theme="dark"] .user-card:hover {
+  box-shadow: 0 8px 24px rgba(30, 144, 255, 0.3);
 }
 
 .user-badge {
@@ -685,6 +912,10 @@ export default {
   line-height: 1.4;
 }
 
+[data-theme="dark"] .user-name {
+  color: #f1f5f9;
+}
+
 .user-details {
   display: flex;
   flex-direction: column;
@@ -700,6 +931,10 @@ export default {
   gap: 0.6rem;
   font-size: 0.9rem;
   color: var(--dark-text);
+}
+
+[data-theme="dark"] .detail-item {
+  color: #cbd5e1;
 }
 
 .detail-icon {
@@ -732,20 +967,351 @@ export default {
   margin-top: 0.5rem;
 }
 
+[data-theme="dark"] .user-footer {
+  color: #94a3b8;
+}
+
 .view-transactions-btn {
-  background: var(--primary-blue);
-  color: white;
+  background: #1e90ff;
+  color: #ffffff;
   border: none;
-  padding: 0.4rem 0.8rem;
+  padding: 0.5rem 1rem;
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .view-transactions-btn:hover {
-  background: var(--primary-blue-hover);
+  background: #1873cc;
   transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(30, 144, 255, 0.3);
+}
+
+/* Transaction Modal */
+.transaction-modal {
+  background: white;
+  border-radius: 20px;
+  padding: 0;
+  max-width: 800px;
+  width: 90%;
+  max-height: 85vh;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+[data-theme="dark"] .transaction-modal {
+  background: #1e293b;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+.modal-header {
+  background: linear-gradient(135deg, #003D6B 0%, #005A9C 100%);
+  color: white;
+  padding: 2rem 2.5rem;
+  border-bottom: none;
+  position: relative;
+}
+
+.modal-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 100%);
+}
+
+.modal-header h2 {
+  color: white;
+  font-size: 1.75rem;
+  margin: 0 0 0.5rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.modal-subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-subtitle::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.05);
+}
+
+.modal-close-icon {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  color: white;
+}
+
+.modal-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 2rem;
+  color: #64748b;
+}
+
+.modal-loading .spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(102, 126, 234, 0.2);
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 1.5rem;
+}
+
+.modal-loading p {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.modal-empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #94a3b8;
+}
+
+.modal-empty svg {
+  margin-bottom: 1.5rem;
+  opacity: 0.4;
+  color: #cbd5e1;
+}
+
+.modal-empty p {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.transactions-list {
+  padding: 2rem 2.5rem;
+  max-height: calc(85vh - 140px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.transactions-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.transactions-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+[data-theme="dark"] .transactions-list::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.transactions-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.transactions-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.transaction-item {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s;
+  animation: fadeInUp 0.3s ease-out backwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.transaction-item:nth-child(1) { animation-delay: 0.05s; }
+.transaction-item:nth-child(2) { animation-delay: 0.1s; }
+.transaction-item:nth-child(3) { animation-delay: 0.15s; }
+.transaction-item:nth-child(4) { animation-delay: 0.2s; }
+.transaction-item:nth-child(5) { animation-delay: 0.25s; }
+
+[data-theme="dark"] .transaction-item {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.transaction-item:hover {
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+  border-color: #667eea;
+  transform: translateY(-2px);
+}
+
+[data-theme="dark"] .transaction-item:hover {
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.25);
+  border-color: #667eea;
+}
+
+.transaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background: white;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+[data-theme="dark"] .transaction-header {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+
+.transaction-action {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.5px;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.transaction-action.borrow {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.transaction-action.return {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.transaction-action svg {
+  flex-shrink: 0;
+}
+
+.transaction-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+
+[data-theme="dark"] .transaction-date {
+  color: #94a3b8;
+  background: #0f172a;
+}
+
+.transaction-date svg {
+  flex-shrink: 0;
+}
+
+.transaction-body {
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.transaction-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .info-label {
+  color: #94a3b8;
+}
+
+.info-value {
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+[data-theme="dark"] .info-value {
+  color: #f1f5f9;
+}
+
+.info-value::before {
+  content: '▸';
+  color: #667eea;
+  font-weight: bold;
 }
 
 .empty-state {

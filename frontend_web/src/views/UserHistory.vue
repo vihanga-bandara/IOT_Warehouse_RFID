@@ -8,7 +8,7 @@
         </div>
         <router-link to="/kiosk" class="back-button">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
+            <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
           Back to Scanner
         </router-link>
@@ -19,42 +19,47 @@
         <p>Loading history...</p>
       </div>
 
-      <div v-else-if="transactions.length === 0" class="empty-state">
+      <div v-else-if="transactions.length === 0" class="empty-state surface-card surface-card--padded">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
         </svg>
         <p>No transactions yet</p>
         <small>Use the RFID scanner to start borrowing items</small>
       </div>
 
       <div v-else class="history-list">
-        <div class="results-header">
+        <div class="results-header surface-card surface-card--compact">
           <span class="result-count">
             <strong>{{ transactions.length }}</strong> transaction<span v-if="transactions.length !== 1">s</span>
           </span>
         </div>
 
-        <div v-for="tx in transactions" :key="tx.id" class="history-item" :class="tx.action.toLowerCase()">
+        <div
+          v-for="tx in transactions"
+          :key="tx.id"
+          class="history-item surface-card surface-card--padded"
+          :class="actionClass(tx.action)"
+        >
           <div class="item-timeline">
             <span class="timeline-dot"></span>
           </div>
           <div class="item-content">
             <div class="item-header">
               <h3 class="item-name">{{ tx.itemName }}</h3>
-              <span :class="['action-badge', tx.action.toLowerCase()]">
-                {{ tx.action }}
+              <span :class="['action-badge', actionClass(tx.action)]">
+                {{ actionLabel(tx.action) }}
               </span>
             </div>
             <div class="item-details">
               <div class="detail">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                 </svg>
                 <span>{{ formatDate(tx.timestamp) }}</span>
               </div>
               <div class="detail">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
                 <span>{{ tx.deviceName }}</span>
               </div>
@@ -87,8 +92,19 @@ export default {
       }
     }
 
-    const formatDate = (timestamp) => {
-      return new Date(timestamp).toLocaleString()
+    const formatDate = (timestamp) => new Date(timestamp).toLocaleString()
+
+    const actionLabel = (action) => {
+      const a = (action || '').toLowerCase()
+      if (a.includes('checkin') || a.includes('return')) return 'Returned'
+      if (a.includes('checkout') || a.includes('borrow')) return 'Borrowed'
+      return action || 'Borrowed'
+    }
+
+    const actionClass = (action) => {
+      const a = (action || '').toLowerCase()
+      if (a.includes('checkin') || a.includes('return')) return 'return'
+      return 'borrow'
     }
 
     onMounted(() => {
@@ -98,7 +114,9 @@ export default {
     return {
       transactions,
       loading,
-      formatDate
+      formatDate,
+      actionLabel,
+      actionClass
     }
   }
 }
@@ -156,7 +174,7 @@ export default {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+  background: var(--gradient-primary);
   color: white;
   text-decoration: none;
   border-radius: 10px;
@@ -209,7 +227,7 @@ export default {
   padding: 3rem;
   background: var(--bg-secondary);
   border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .spinner {
@@ -235,10 +253,7 @@ export default {
   text-align: center;
   color: var(--accent-gray);
   padding: 3rem 2rem;
-  background: var(--bg-secondary);
-  border-radius: 16px;
   border: 2px dashed var(--border-color);
-  box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
 }
 
 .empty-state svg {
@@ -258,6 +273,9 @@ export default {
 }
 
 .history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   animation: slideUp 0.4s ease-out;
 }
 
@@ -273,11 +291,10 @@ export default {
 }
 
 .results-header {
-  background: var(--bg-primary);
-  padding: 1rem 1.5rem;
-  border-radius: 14px 14px 0 0;
-  border-bottom: 2px solid var(--border-color);
-  box-shadow: 0 2px 8px rgba(0, 61, 107, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
 }
 
 .result-count {
@@ -291,19 +308,9 @@ export default {
   font-size: 1.1rem;
 }
 
-.history-list {
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-primary);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
-}
-
 .history-item {
   display: flex;
   gap: 1.5rem;
-  padding: 1.5rem;
   border-bottom: 1px solid var(--border-color);
   transition: all 0.3s ease;
   position: relative;
@@ -336,13 +343,13 @@ export default {
   margin-top: 0.25rem;
 }
 
-.history-item.checkout .timeline-dot {
-  background: var(--accent-green);
+.history-item.borrow .timeline-dot {
+  background: linear-gradient(135deg, var(--primary-light) 0%, #6ee7b7 100%);
   box-shadow: 0 0 0 2px var(--accent-green);
 }
 
-.history-item.checkin .timeline-dot {
-  background: var(--color-warning);
+.history-item.return .timeline-dot {
+  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
   box-shadow: 0 0 0 2px var(--color-warning);
 }
 
@@ -379,15 +386,86 @@ export default {
   flex-shrink: 0;
 }
 
-.action-badge.checkout {
-  background: linear-gradient(135deg, var(--accent-green) 0%, #45a049 100%);
+.action-badge.borrow {
+  background: linear-gradient(135deg, var(--primary-light) 0%, #6ee7b7 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(80, 200, 120, 0.3);
 }
 
-.action-badge.checkin {
-  background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+.action-badge.return {
+  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
+.item-details {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.detail {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--accent-gray);
+  font-weight: 500;
+}
+
+.detail svg {
+  opacity: 0.6;
+  color: var(--primary-light);
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .history-item {
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .item-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .item-name {
+    font-size: 1rem;
+  }
+
+  .action-badge {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .item-details {
+    gap: 1rem;
+    font-size: 0.85rem;
+  }
+
+  .result-count {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .history-item {
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .item-name {
+    font-size: 0.95rem;
+  }
+
+  .item-details {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+</style>
   box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
 }
 

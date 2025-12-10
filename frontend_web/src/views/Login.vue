@@ -1,6 +1,6 @@
 <template>
   <div class="login-container">
-    <div class="login-card">
+    <div class="login-card surface-card surface-card--padded">
       <div class="logo-section">
         <img src="/tooltrack-logo.png" alt="ToolTrackPro Logo" class="logo-image" />
         <p class="subtitle">Smart RFID Warehouse Management</p>
@@ -154,10 +154,6 @@ export default {
 }
 
 .login-card {
-  background: var(--bg-secondary);
-  padding: 3rem 2.5rem;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 61, 107, 0.25);
   width: 100%;
   max-width: 440px;
   margin: 1rem;

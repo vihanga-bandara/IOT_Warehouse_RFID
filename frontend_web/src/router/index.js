@@ -34,6 +34,12 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
+    path: '/admin/items',
+    name: 'Items',
+    component: () => import('../views/AdminItems.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
     path: '/admin/transactions',
     name: 'TransactionHistory',
     component: () => import('../views/AdminTransactionHistory.vue'),
@@ -43,6 +49,12 @@ const routes = [
     path: '/admin/users',
     name: 'UserManagement',
     component: () => import('../views/AdminUserManagement.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/users/:id',
+    name: 'UserDetail',
+    component: () => import('../views/AdminUserDetail.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
