@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 env:
-  AZURE_APP_NAME: ${{ secrets.AZURE_APP_NAME }}
+  AZURE_RESOURCE_GROUP: rfid-warehouse-rg-no
 
 jobs:
   # ===== Build & Test Backend =====
@@ -112,8 +112,20 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Get App Service Name
+        id: get-app-name
+        uses: azure/cli@v1
+        with:
+          inlineScript: |
+            APP_NAME=$(az deployment group show \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --name main \
+              --query properties.outputs.appServiceName.value \
+              --output tsv)
+            echo "app-name=$APP_NAME" >> $GITHUB_OUTPUT
+
       - name: Deploy to App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ env.AZURE_APP_NAME }}
+          app-name: ${{ steps.get-app-name.outputs.app-name }}
           package: ${{ github.workspace }}/backend-dist
