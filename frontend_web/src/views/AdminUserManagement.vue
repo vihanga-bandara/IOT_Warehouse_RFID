@@ -153,13 +153,25 @@
 
               <div class="form-group">
                 <label for="edit-password">New Password (Optional)</label>
-                <input
-                  id="edit-password"
-                  v-model="editForm.newPassword"
-                  type="password"
-                  placeholder="Leave blank to keep current"
-                  class="form-input"
-                />
+                <div class="password-input-wrapper">
+                  <input
+                    id="edit-password"
+                    v-model="editForm.newPassword"
+                    :type="showEditPassword ? 'text' : 'password'"
+                    placeholder="Leave blank to keep current"
+                    class="form-input"
+                  />
+                  <button type="button" class="password-toggle" @click="showEditPassword = !showEditPassword" :title="showEditPassword ? 'Hide password' : 'Show password'">
+                    <svg v-if="showEditPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               <div class="form-row">
@@ -386,6 +398,7 @@ export default {
     const userFilter = ref('')
     const showRegisterForm = ref(false)
     const showEditForm = ref(false)
+    const showEditPassword = ref(false)
     const showTransactionModal = ref(false)
     const selectedUser = ref(null)
     const editingUser = ref(null)
@@ -586,6 +599,7 @@ export default {
       loading,
       showRegisterForm,
       showEditForm,
+      showEditPassword,
       showTransactionModal,
       selectedUser,
       editingUser,
@@ -799,6 +813,39 @@ export default {
 
 .form-input::placeholder {
   color: var(--text-tertiary);
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper .form-input {
+  padding-right: 2.5rem;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  padding: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.password-toggle:hover {
+  color: var(--primary-light);
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
 }
 
 @media (max-width: 600px) {

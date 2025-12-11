@@ -68,14 +68,14 @@ public class AuthService : IAuthService
                 if (string.IsNullOrWhiteSpace(loginDto.ScannerName))
                 {
                     _logger.LogWarning("Login failed for user {Email}: scanner name is required for non-admin users", loginDto.Email);
-                    return null;
+                    throw new InvalidOperationException("Scanner name is required to access the kiosk. Please provide a scanner name.");
                 }
 
                 var binding = await _scannerSessionService.BindUserToScannerAsync(user.UserId, loginDto.ScannerName);
                 if (binding == null)
                 {
                     _logger.LogWarning("Login failed for user {Email}: scanner not found for name {ScannerName}", loginDto.Email, loginDto.ScannerName);
-                    return null;
+                    throw new InvalidOperationException($"Scanner '{loginDto.ScannerName}' not found. Please check the scanner name and try again.");
                 }
 
                 scannerDeviceId = binding.Value.DeviceId;
@@ -106,6 +106,12 @@ public class AuthService : IAuthService
                 ScannerDeviceId = scannerDeviceId,
                 ScannerName = scannerName
             };
+        }
+        catch (InvalidOperationException)
+        {
+            // Scanner validation errors should be returned to the client as 400.
+            // Let the controller map this exception to a helpful message.
+            throw;
         }
         catch (Exception ex)
         {

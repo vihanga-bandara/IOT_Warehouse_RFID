@@ -30,14 +30,25 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var result = await _authService.LoginAsync(loginDto);
-
-        if (result == null)
+        try
         {
-            return Unauthorized(new { message = "Invalid email or password" });
+            var result = await _authService.LoginAsync(loginDto);
+            if (result == null)
+            {
+                return Unauthorized(new { message = "Invalid email or password" });
+            }
+            return Ok(result);
         }
-
-        return Ok(result);
+        catch (InvalidOperationException ioe)
+        {
+            // Known validation (scanner missing / not found) -> return 400 with details
+            return BadRequest(new { message = ioe.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during login");
+            return StatusCode(500, new { message = "An unexpected error occurred during login" });
+        }
     }
 
     [HttpPost("register")]
