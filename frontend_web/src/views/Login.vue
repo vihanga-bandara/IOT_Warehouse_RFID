@@ -6,6 +6,16 @@
         <p class="subtitle">Smart RFID Warehouse Management</p>
       </div>
 
+      <transition name="fade">
+        <div v-if="scannerNotice" class="info-message">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 16h-1v-4h-1"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+          {{ scannerNotice }}
+        </div>
+      </transition>
+
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
           <label for="email">
@@ -88,8 +98,8 @@
 </template>
 
 <script>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 
 export default {
@@ -101,7 +111,9 @@ export default {
     const error = ref('')
     const loading = ref(false)
     const router = useRouter()
+    const route = useRoute()
     const authStore = useAuthStore()
+    const scannerNotice = ref('')
 
     const handleLogin = async () => {
       error.value = ''
@@ -122,13 +134,20 @@ export default {
       }
     }
 
+    onMounted(() => {
+      if (route.query?.scannerMissing) {
+        scannerNotice.value = 'Scanner information is missing — please provide a scanner name or set up a scanner before accessing the kiosk.'
+      }
+    })
+
     return {
       email,
       password,
       scannerName,
       error,
       loading,
-      handleLogin
+      handleLogin,
+      scannerNotice
     }
   }
 }
@@ -382,6 +401,20 @@ export default {
   font-size: 0.9rem;
   font-weight: 500;
   border: 2px solid var(--error-color);
+}
+
+.info-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(30, 144, 255, 0.06);
+  color: var(--primary-dark);
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(30, 144, 255, 0.12);
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .fade-enter-active, .fade-leave-active {

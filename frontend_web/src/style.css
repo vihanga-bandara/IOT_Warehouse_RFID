@@ -10,28 +10,46 @@
   --bg-light: #f8f9fa;
   --bg-lighter: #f0f4f8;
   --error-color: #e74c3c;
+  --badge-pill-text: #ffffff;
+  --badge-available-gradient: linear-gradient(135deg, #4ade80 0%, #16a34a 100%);
+  --badge-borrowed-gradient: linear-gradient(135deg, #f97316 0%, #f59e0b 100%);
+  --badge-return-gradient: linear-gradient(135deg, #2563eb 0%, #6d28d9 100%);
+  --badge-neutral-bg: rgba(15, 23, 42, 0.08);
+  --badge-neutral-color: #475569;
+  :root {
+    /* ToolTrackPro Color Palette */
+    --primary-dark: #003d6b;      /* Dark Blue from logo */
+    --primary-light: #1e90ff;     /* Bright Blue */
+    --accent-green: #50c878;      /* Green from logo */
+    --accent-gray: #b8c5d6;       /* Light gray from logo */
+    --dark-text: #1a2332;
+    --light-text: #ffffff;
+    --border-color: #e1e8ed;
+    --bg-light: #f8f9fa;
+    --bg-lighter: #f0f4f8;
+    --error-color: #e74c3c;
+    --badge-pill-text: #ffffff;
+    --badge-available-gradient: linear-gradient(135deg, #4ade80 0%, #16a34a 100%);
+    --badge-borrowed-gradient: linear-gradient(135deg, #f97316 0%, #f59e0b 100%);
+    --badge-return-gradient: linear-gradient(135deg, #2563eb 0%, #6d28d9 100%);
+    --badge-active-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --badge-inactive-gradient: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    --badge-neutral-bg: rgba(15, 23, 42, 0.08);
+    --badge-neutral-color: #475569;
+    --badge-role-admin-gradient: linear-gradient(135deg, #374151 0%, #475569 100%);
+    --badge-role-user-gradient: linear-gradient(135deg, #374151 0%, #475569 100%);
+    --primary-gradient: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+    --primary-btn-shadow: 0 10px 25px rgba(30, 144, 255, 0.25);
   
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: light dark;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
+    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+    color-scheme: light dark;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
   overflow: hidden;
 }
 
@@ -80,6 +98,28 @@ button:focus-visible {
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+}
+
+.primary-action-btn {
+  background: var(--primary-gradient);
+  color: var(--light-text);
+  border: none;
+  border-radius: 10px;
+  padding: 0.55rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  box-shadow: var(--primary-btn-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.primary-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(30, 144, 255, 0.4);
 }
 
 @media (prefers-color-scheme: light) {

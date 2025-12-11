@@ -134,6 +134,35 @@ input[type='reset'] {
   }
 }
 
+// Shared button styles for consistency
+.button-primary {
+  background: var(--primary);
+  color: var(--text-light);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  font-weight: var(--weight-semibold);
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.button-primary:hover:not(:disabled) {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.button-secondary {
+  background: var(--secondary);
+  color: var(--text-light);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  font-weight: var(--weight-semibold);
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.button-secondary:hover:not(:disabled) {
+  background: var(--secondary-dark);
+  transform: translateY(-1px);
+}
+
 // ============================================================================
 // FORMS
 // ============================================================================
@@ -303,6 +332,83 @@ label {
 
 .surface-card--padded {
   padding: var(--spacing-lg) 1.5rem;
+}
+
+/* Ensure primary / add buttons are visible in dark mode (fills instead of ghost) */
+[data-theme="dark"] .button-primary,
+[data-theme="dark"] .primary-action-btn,
+[data-theme="dark"] .add-scanner-btn,
+[data-theme="dark"] .add-scanner-button {
+  background: linear-gradient(90deg, #1e90ff 0%, #4ab0ff 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 10px 25px rgba(30, 144, 255, 0.18);
+}
+
+[data-theme="dark"] .button-primary:hover,
+[data-theme="dark"] .primary-action-btn:hover,
+[data-theme="dark"] .add-scanner-btn:hover,
+[data-theme="dark"] .add-scanner-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(30, 144, 255, 0.28);
+}
+
+/* Section header count badge - informational only (not a button) */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-header .item-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+[data-theme="dark"] .section-header .item-count {
+  background: var(--badge-neutral-bg);
+  color: var(--badge-pill-text);
+  border-color: rgba(255,255,255,0.04);
+}
+
+/* Global dark-mode modal overrides: apply to all modals across app (opaque, high contrast) */
+[data-theme="dark"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.78) !important;
+}
+
+[data-theme="dark"] .form-modal,
+[data-theme="dark"] .modal,
+[data-theme="dark"] .modal-dialog,
+[data-theme="dark"] .account-modal,
+[data-theme="dark"] .add-user-modal,
+[data-theme="dark"] .add-scanner-modal {
+  background: #0f172a !important;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6) !important;
+  border: 1px solid rgba(255,255,255,0.03) !important;
+}
+
+[data-theme="dark"] .form-modal .form-input,
+[data-theme="dark"] .form-input,
+[data-theme="dark"] input.form-input,
+[data-theme="dark"] textarea.form-input {
+  background: #0f172a !important;
+  color: #e6eef8 !important;
+  border-color: #243244 !important;
+}
+
+[data-theme="dark"] .modal-close {
+  color: var(--accent-gray) !important;
 }
 
 .surface-card--compact {

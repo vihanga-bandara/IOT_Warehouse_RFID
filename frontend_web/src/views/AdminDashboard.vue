@@ -99,7 +99,7 @@
         <div class="inventory-section surface-card surface-card--padded">
           <div class="section-header">
             <h2>Currently Borrowed Items</h2>
-            <span class="item-count">{{ borrowedItems.length }} items</span>
+            <span class="item-count">{{ borrowedItems.length }} item<span v-if="borrowedItems.length !== 1">s</span></span>
           </div>
 
           <div
@@ -488,12 +488,15 @@ export default {
 }
 
 .item-count {
-  background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-green) 100%);
-  color: white;
-  padding: 0.4rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  border: 1px solid var(--border-color);
+  pointer-events: none;
+  user-select: none;
 }
 
 @media (max-width: 600px) {

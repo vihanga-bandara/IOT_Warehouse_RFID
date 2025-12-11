@@ -54,11 +54,22 @@
                   </svg>
                   My profile & password
                 </button>
-                <button class="dropdown-item" @click="goToKiosk" v-if="authStore.user?.role === 'Admin'">
+                <button
+                  class="dropdown-item"
+                  :class="{ disabled: authStore.user?.role === 'Admin' && !authStore.scannerDeviceId }"
+                  @click="goToKiosk"
+                  :disabled="authStore.user?.role === 'Admin' && !authStore.scannerDeviceId"
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
                   </svg>
-                  Go to Kiosk
+                  <span class="tooltip-text" style="position:relative;display:inline-block;">
+                    Go to Kiosk
+                    <span
+                      v-if="authStore.user?.role === 'Admin' && !authStore.scannerDeviceId"
+                      class="tooltip-message"
+                    >Login with scanner details to access Kiosk as Admin</span>
+                  </span>
                 </button>
                 <div class="dropdown-divider"></div>
                 <button class="dropdown-item danger" @click="logout">
@@ -382,6 +393,47 @@ export default {
 </script>
 
 <style scoped>
+.dropdown-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  position: relative;
+}
+
+.tooltip-text {
+  position: relative;
+  display: inline-block;
+}
+.tooltip-message {
+  visibility: hidden;
+  opacity: 0;
+  background: #222;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 6px 12px;
+  position: absolute;
+  z-index: 1001;
+  left: 110%;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 0.85rem;
+  margin-left: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* show tooltip on hover and auto-fade after 2s */
+.dropdown-item.disabled:hover .tooltip-message {
+  visibility: visible;
+  animation: fadeInOut 2s forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-50%) translateX(0); }
+  10% { opacity: 1; transform: translateY(-50%) translateX(4px); }
+  80% { opacity: 1; transform: translateY(-50%) translateX(4px); }
+  100% { opacity: 0; transform: translateY(-50%) translateX(0); visibility: hidden; }
+}
 .admin-layout-wrapper {
   min-height: 100%;
   display: flex;
@@ -745,6 +797,23 @@ export default {
   box-shadow: 0 20px 60px rgba(0, 61, 107, 0.25);
   width: 100%;
   position: relative;
+}
+
+/* Dark-mode overrides: ensure modal and inputs are fully opaque for readability */
+[data-theme="dark"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+[data-theme="dark"] .form-modal,
+[data-theme="dark"] .account-modal {
+  background: #0f172a !important;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6) !important;
+}
+
+[data-theme="dark"] .form-input {
+  background: #0f172a !important;
+  color: #e6eef8 !important;
+  border-color: #243244 !important;
 }
 
 .modal-close {

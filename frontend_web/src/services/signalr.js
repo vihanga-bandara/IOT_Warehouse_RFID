@@ -47,13 +47,21 @@ export const onCartUpdated = (callback) => {
 }
 
 export const joinScannerGroup = async (deviceId) => {
-  if (connection && deviceId) {
-    try {
-      await connection.invoke('JoinScannerGroup', deviceId)
-      console.log('Joined scanner group', deviceId)
-    } catch (err) {
-      console.error('Failed to join scanner group', deviceId, err)
-    }
+  if (!connection || !deviceId) {
+    return
+  }
+
+  // Only attempt to join when the connection is actually established.
+  if (connection.state !== SignalR.HubConnectionState.Connected) {
+    console.warn('Cannot join scanner group, SignalR not connected yet')
+    return
+  }
+
+  try {
+    await connection.invoke('JoinScannerGroup', deviceId)
+    console.log('Joined scanner group', deviceId)
+  } catch (err) {
+    console.error('Failed to join scanner group', deviceId, err)
   }
 }
 
