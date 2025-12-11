@@ -1,13 +1,20 @@
 <template>
-  <div class="history-page">
-    <div class="history-container">
-      <div class="page-header">
-        <div>
-          <h1>My Borrowing History</h1>
-          <p class="page-subtitle">Transaction records and activity</p>
+  <div class="kiosk-page">
+    <div class="kiosk-container surface-card surface-card--padded">
+      <div class="kiosk-header">
+        <div class="header-content">
+          <h1>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            My History
+          </h1>
+          <p class="scan-status">
+            Transaction records
+          </p>
         </div>
-        <router-link to="/kiosk" class="back-button">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <router-link to="/kiosk" class="logout-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
           Back to Scanner
@@ -19,49 +26,47 @@
         <p>Loading history...</p>
       </div>
 
-      <div v-else-if="transactions.length === 0" class="empty-state surface-card surface-card--padded">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <div v-else-if="transactions.length === 0" class="empty-cart surface-card surface-card--padded">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
         </svg>
         <p>No transactions yet</p>
         <small>Use the RFID scanner to start borrowing items</small>
       </div>
 
-      <div v-else class="history-list">
-        <div class="results-header surface-card surface-card--compact">
-          <span class="result-count">
-            <strong>{{ transactions.length }}</strong> transaction<span v-if="transactions.length !== 1">s</span>
-          </span>
+      <div v-else class="cart-display surface-card surface-card--padded" style="min-height: auto;">
+        <div class="cart-header">
+          <h2>Transactions</h2>
+          <span class="item-badge">{{ transactions.length }} records</span>
         </div>
 
-        <div
-          v-for="tx in transactions"
-          :key="tx.id"
-          class="history-item surface-card surface-card--padded"
-          :class="actionClass(tx.action)"
-        >
-          <div class="item-timeline">
-            <span class="timeline-dot"></span>
-          </div>
-          <div class="item-content">
-            <div class="item-header">
-              <h3 class="item-name">{{ tx.itemName }}</h3>
-              <span :class="['action-badge', actionClass(tx.action)]">
-                {{ actionLabel(tx.action) }}
-              </span>
-            </div>
-            <div class="item-details">
-              <div class="detail">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                </svg>
-                <span>{{ formatDate(tx.timestamp) }}</span>
+        <div class="cart-items">
+          <div
+            v-for="tx in transactions"
+            :key="tx.id"
+            class="cart-item"
+            :class="actionClass(tx.action)"
+          >
+            <div class="item-content">
+              <div class="item-header">
+                <h3 class="item-name">{{ tx.itemName }}</h3>
+                <span :class="['action-badge', actionClass(tx.action)]">
+                  {{ actionLabel(tx.action) }}
+                </span>
               </div>
-              <div class="detail">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-                <span>{{ tx.deviceName }}</span>
+              <div class="item-details">
+                <div class="detail">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <span>{{ formatDate(tx.timestamp) }}</span>
+                </div>
+                <div class="detail">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
+                  <span>{{ tx.deviceName }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -74,12 +79,14 @@
 <script>
 import { ref, onMounted } from 'vue'
 import api from '../services/api'
+import { useTheme } from '../composables/useTheme'
 
 export default {
   name: 'UserHistory',
   setup() {
     const transactions = ref([])
     const loading = ref(true)
+    const { isDark, toggleTheme } = useTheme()
 
     const fetchHistory = async () => {
       try {
@@ -108,6 +115,10 @@ export default {
     }
 
     onMounted(() => {
+      // Force light mode
+      if (isDark.value) {
+        toggleTheme()
+      }
       fetchHistory()
     })
 
@@ -123,160 +134,28 @@ export default {
 </script>
 
 <style scoped>
-.history-page {
+/* Reuse Kiosk styles for consistency */
+.kiosk-page {
   width: 100%;
   min-height: 100vh;
   background: var(--gradient-page-bg);
-  padding: 2rem 1rem;
-}
-
-.history-container {
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.page-header {
+  padding: 1rem;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2.5rem;
-  animation: slideDown 0.4s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.page-header h1 {
-  color: var(--primary-dark);
-  margin: 0 0 0.5rem;
-  font-size: 2.5rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.page-subtitle {
-  color: var(--accent-gray);
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 500;
-}
-
-.back-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: var(--gradient-primary);
-  color: white;
-  text-decoration: none;
-  border-radius: 10px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.3);
-}
-
-.back-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(30, 144, 255, 0.4);
-}
-
-@media (max-width: 600px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .page-header h1 {
-    font-size: 1.8rem;
-  }
-
-  .page-subtitle {
-    font-size: 0.95rem;
-  }
-
-  .back-button {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-@media (max-width: 400px) {
-  .page-header h1 {
-    font-size: 1.4rem;
-  }
-
-  .page-subtitle {
-    font-size: 0.85rem;
-  }
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
-  background: var(--bg-secondary);
+}
+
+.kiosk-container {
+  background: var(--bg-primary);
   border-radius: 16px;
-  box-shadow: var(--shadow-md);
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--border-color);
-  border-top-color: var(--primary-light);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-state p {
-  color: var(--accent-gray);
-  font-weight: 600;
-}
-
-.empty-state {
-  text-align: center;
-  color: var(--accent-gray);
-  padding: 3rem 2rem;
-  border: 2px dashed var(--border-color);
-}
-
-.empty-state svg {
-  opacity: 0.5;
-  margin-bottom: 1rem;
-}
-
-.empty-state p {
-  margin: 0 0 0.5rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.empty-state small {
-  font-size: 0.9rem;
-  color: var(--accent-gray);
-}
-
-.history-list {
+  box-shadow: 0 4px 16px rgba(0, 61, 107, 0.08);
+  width: 100%;
+  max-width: 700px;
+  padding: 2rem;
+  animation: slideUp 0.4s ease-out;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  animation: slideUp 0.4s ease-out;
+  gap: 2rem;
 }
 
 @keyframes slideUp {
@@ -290,179 +169,221 @@ export default {
   }
 }
 
-.results-header {
+.kiosk-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border-color);
 }
 
-.result-count {
-  color: var(--accent-gray);
-  font-size: 0.9rem;
-  font-weight: 600;
+.header-content {
+  text-align: center;
+  flex: 1;
 }
 
-.result-count strong {
-  color: var(--primary-dark);
-  font-size: 1.1rem;
-}
-
-.history-item {
+.kiosk-header h1 {
   display: flex;
-  gap: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--primary-dark);
+  margin: 0 0 0.5rem;
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.scan-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--accent-green);
+  margin: 0;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-secondary);
+  color: var(--accent-gray);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
   transition: all 0.3s ease;
-  position: relative;
+  text-decoration: none;
 }
 
-.history-item:last-child {
-  border-bottom: none;
+.logout-btn:hover {
+  background: var(--border-color);
+  color: var(--primary-dark);
+  transform: translateY(-2px);
 }
 
-.history-item:hover {
-  background: linear-gradient(90deg, rgba(30, 144, 255, 0.02) 0%, rgba(80, 200, 120, 0.02) 100%);
+.cart-display {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 400px;
+  border-radius: 16px;
+  border: 2px solid var(--border-color);
 }
 
-.item-timeline {
+.cart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cart-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--primary-dark);
+}
+
+.item-badge {
+  background: var(--primary-light);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.empty-cart {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--accent-gray);
+  min-height: 300px;
+  border-radius: 16px;
+  border: 2px dashed var(--border-color);
 }
 
-.timeline-dot {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  background: var(--primary-light);
-  border: 3px solid white;
-  border-radius: 50%;
-  box-shadow: 0 0 0 2px var(--primary-light);
-  flex-shrink: 0;
-  margin-top: 0.25rem;
+.empty-cart p {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
 }
 
-.history-item.borrow .timeline-dot {
-  background: linear-gradient(135deg, var(--primary-light) 0%, #6ee7b7 100%);
-  box-shadow: 0 0 0 2px var(--accent-green);
+.cart-items {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  max-height: 500px;
 }
 
-.history-item.return .timeline-dot {
-  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
-  box-shadow: 0 0 0 2px var(--color-warning);
+.cart-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-radius: 10px;
+  border-left: 4px solid;
+  transition: all 0.3s ease;
+  background: var(--bg-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.cart-item.borrow {
+  border-left-color: var(--accent-green);
+  background: linear-gradient(135deg, rgba(80, 200, 120, 0.08) 0%, rgba(80, 200, 120, 0.04) 100%);
+}
+
+.cart-item.return {
+  border-left-color: var(--color-warning);
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.08) 0%, rgba(255, 193, 7, 0.04) 100%);
 }
 
 .item-content {
   flex: 1;
-  min-width: 0;
 }
 
 .item-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .item-name {
-  color: var(--primary-dark);
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
-  word-break: break-word;
+  color: var(--primary-dark);
 }
 
 .action-badge {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
 }
 
 .action-badge.borrow {
-  background: linear-gradient(135deg, var(--primary-light) 0%, #6ee7b7 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(80, 200, 120, 0.3);
+  color: var(--accent-green);
+  background: rgba(80, 200, 120, 0.1);
 }
 
 .action-badge.return {
-  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+  color: var(--color-warning);
+  background: rgba(255, 193, 7, 0.1);
 }
 
 .item-details {
   display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .detail {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
+  gap: 0.4rem;
+  font-size: 0.85rem;
   color: var(--accent-gray);
-  font-weight: 500;
 }
 
-.detail svg {
-  opacity: 0.6;
-  color: var(--primary-light);
-  flex-shrink: 0;
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-light);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 600px) {
-  .history-item {
-    gap: 1rem;
-    padding: 1rem;
+  .kiosk-container {
+    padding: 1.5rem;
   }
-
-  .item-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .item-name {
-    font-size: 1rem;
-  }
-
-  .action-badge {
-    font-size: 0.75rem;
-    padding: 0.4rem 0.8rem;
-  }
-
-  .item-details {
-    gap: 1rem;
-    font-size: 0.85rem;
-  }
-
-  .result-count {
-    font-size: 0.85rem;
-  }
-}
-
-@media (max-width: 400px) {
-  .history-item {
-    gap: 0.75rem;
-    padding: 0.75rem;
-  }
-
-  .item-name {
-    font-size: 0.95rem;
-  }
-
-  .item-details {
-    flex-direction: column;
-    gap: 0.5rem;
+  
+  .kiosk-header h1 {
+    font-size: 1.4rem;
   }
 }
 </style>
