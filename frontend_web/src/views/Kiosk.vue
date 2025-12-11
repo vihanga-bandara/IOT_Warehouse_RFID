@@ -13,6 +13,10 @@
             <span class="pulse"></span>
             Ready for scanning
           </p>
+          <p v-if="authStore.scannerDeviceId" class="scanner-binding">
+            Using scanner:
+            <strong>{{ authStore.scannerName || authStore.scannerDeviceId }}</strong>
+          </p>
         </div>
         <div class="header-actions">
           <button v-if="authStore.user?.role === 'Admin'" @click="goToAdmin" class="admin-btn" title="Back to Admin">
@@ -320,6 +324,12 @@ export default {
   margin: 0;
   font-weight: 600;
   font-size: 1rem;
+}
+
+.scanner-binding {
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--accent-gray);
 }
 
 .header-actions {

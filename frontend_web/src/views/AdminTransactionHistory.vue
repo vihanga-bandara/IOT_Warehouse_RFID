@@ -28,9 +28,7 @@
             class="filter-input"
           />
         </div>
-        <button class="clear-filter-btn button-ghost" @click="clearFilters" v-if="filterAction || filterUser">
-          Clear
-        </button>
+        <button class="button-primary" @click="clearFilters">Clear</button>
       </div>
 
       <div v-if="loading" class="loading-state">
@@ -380,23 +378,33 @@ export default {
 
 .action-badge {
   display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  transition: all 0.3s ease;
+  color: white;
+  background: var(--badge-neutral-bg);
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.18s ease;
 }
 
 .action-badge.borrow {
-  background: linear-gradient(135deg, var(--primary-light) 0%, #6ee7b7 100%);
+  background: var(--badge-borrowed-gradient);
   color: white;
 }
 
 .action-badge.return {
-  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
-  color: white;
+  background: var(--badge-available-gradient);
+  color: var(--badge-available-text);
+}
+
+[data-theme="dark"] .status-badge,
+[data-theme="dark"] .action-badge {
+  text-shadow: 0 1px 0 rgba(0,0,0,0.28);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
 }
 
 @media (max-width: 800px) {

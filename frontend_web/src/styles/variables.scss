@@ -66,6 +66,26 @@ $color-info: #1e90ff;
   --gradient-warning: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
   --gradient-page-bg: linear-gradient(135deg, #f8f9fa 0%, #f0f3ff 100%);
 
+  // Primary shorthand (used by .button-primary)
+  --primary: var(--gradient-primary);
+
+  // Badge & pill tokens
+  --badge-pill-text: #04263f;
+  --badge-neutral-bg: #f1f5f9;
+  --badge-neutral-color: #64748b;
+  --badge-available-gradient: linear-gradient(90deg, #34d399 0%, #10b981 100%);
+  --badge-available-text: #ffffff;
+  --badge-borrowed-gradient: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);
+  /* Active = green, Inactive = red (light mode) */
+  --badge-active-gradient: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  --badge-active-glow: rgba(16,185,129,0.14);
+  --badge-inactive-gradient: linear-gradient(90deg, #ef4444 0%, #b91c1c 100%);
+  /* Role badges - neutral/monochrome with white text */
+  --badge-role-admin-gradient: linear-gradient(90deg, #374151 0%, #475569 100%);
+  --badge-role-admin-text: #ffffff;
+  --badge-role-user-gradient: linear-gradient(90deg, #374151 0%, #475569 100%);
+  --badge-role-user-text: #ffffff;
+
   // Spacing Scale
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -154,7 +174,29 @@ $color-info: #1e90ff;
   --gradient-accent: linear-gradient(135deg, var(--accent-green) 0%, #4ab878 100%);
   --gradient-warning: linear-gradient(135deg, #ffdd57 0%, #ffca2c 100%);
   --gradient-page-bg: linear-gradient(135deg, #121821 0%, #1a202d 100%);
+
+  // Badge & pill tokens - dark mode
+  --badge-pill-text: #e6eef8;
+  --badge-neutral-bg: #0f172a;
+  --badge-neutral-color: #94a3b8;
+  --badge-available-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --badge-available-text: #ffffff;
+  --badge-available-glow: rgba(16,185,129,0.14);
+  --badge-borrowed-gradient: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);
+  --badge-borrowed-glow: rgba(255,107,107,0.12);
+  /* Dark mode: set active/inactive to strong green/red, and role badges neutral */
+  --badge-active-gradient: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  --badge-active-glow: rgba(16,185,129,0.18);
+  --badge-inactive-gradient: linear-gradient(90deg, #ef4444 0%, #b91c1c 100%);
+  --badge-role-admin-gradient: linear-gradient(90deg, #0b1220 0%, #111827 100%);
+  --badge-role-admin-text: #ffffff;
+  --badge-role-user-gradient: linear-gradient(90deg, #0b1220 0%, #111827 100%);
+  --badge-role-user-text: #ffffff;
+
+    /* ensure shorthand primary exists in dark mode too */
+  --primary: var(--gradient-primary);
 }
+
 
 // ============================================================================
 // UTILITY VARIABLES (Non-themed)

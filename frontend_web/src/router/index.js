@@ -86,10 +86,13 @@ router.beforeEach((to, from, next) => {
     console.log('Blocking access to admin route, redirecting to kiosk')
     next('/kiosk')
   }
-  // Admins must select a scanner before accessing kiosk routes
-  else if ((to.path === '/kiosk' || to.path === '/kiosk/history') && authStore.user?.role === 'Admin' && !authStore.scannerDeviceId) {
-    next('/admin/scanners')
-  } 
+  // All users must have a scanner selected to access kiosk routes
+  else if ((to.path === '/kiosk' || to.path === '/kiosk/history') && !authStore.scannerDeviceId) {
+    // If scanner info is missing, clear session and force login to avoid inconsistent state
+    console.warn('Attempt to access kiosk without scanner — logging out')
+    authStore.logout()
+    next({ path: '/login', query: { scannerMissing: '1' } })
+  }
   // Redirect logged-in users away from login page
   else if (to.path === '/login' && authStore.isAuthenticated) {
     if (authStore.user?.role === 'Admin') {

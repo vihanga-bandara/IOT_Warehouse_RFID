@@ -111,7 +111,7 @@
               </div>
 
               <div class="form-buttons">
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="button-primary">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
@@ -291,7 +291,7 @@
               <button @click="openEditUser(user)" class="edit-user-btn button-ghost">
                 Edit
               </button>
-              <button @click="viewUserTransactions(user.id)" class="view-transactions-btn">
+              <button @click="viewUserTransactions(user.id)" class="view-transactions-btn primary-action-btn">
                 View Transactions
               </button>
             </div>
@@ -1080,36 +1080,48 @@ export default {
 }
 
 .user-badge {
-  display: inline-block;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.35px;
+  color: var(--badge-pill-text);
+  background: var(--badge-neutral-bg);
+  border: none;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
 }
 
 .user-badge.admin {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);
-  color: white;
+  background: var(--badge-role-admin-gradient);
+  color: var(--badge-role-admin-text);
 }
 
 .user-badge.user {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
+  background: var(--badge-role-user-gradient);
+  color: var(--badge-role-user-text);
+}
+
+.user-badge:hover {
+  transform: translateY(-1px);
 }
 
 .edit-user-btn {
   background: transparent;
   color: var(--primary-dark);
   border: 1px solid var(--border-color);
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
   margin-right: 0.5rem;
+  min-width: 72px;
 }
 
 .edit-user-btn:hover {
@@ -1172,36 +1184,38 @@ export default {
 
 .user-footer {
   display: flex;
-  justify-content: space-between;
+  gap: 0.75rem;
   align-items: center;
+  justify-content: flex-start;
   color: var(--accent-gray);
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 500;
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.primary-action-btn {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+  color: var(--text-inverse);
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(30,144,255,0.12);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  min-width: 140px;
+}
+
+.primary-action-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(30,144,255,0.18);
 }
 
 [data-theme="dark"] .user-footer {
   color: #94a3b8;
 }
 
-.view-transactions-btn {
-  background: #1e90ff;
-  color: #ffffff;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.view-transactions-btn:hover {
-  background: #1873cc;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(30, 144, 255, 0.3);
-}
 
 /* Transaction Modal */
 .transaction-modal {

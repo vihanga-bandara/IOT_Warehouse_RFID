@@ -38,7 +38,7 @@
             >
               Clear
             </button>
-            <button class="add-scanner-btn" @click="openCreate">
+            <button class="button-primary" @click="openCreate">
               + Add scanner
             </button>
           </div>
@@ -64,21 +64,30 @@
             </div>
             <div class="scanner-card-header">
               <div>
-                <h3 class="scanner-name">{{ scanner.name }}</h3>
+                <h3 class="scanner-name">
+                  <span class="scanner-name-text">{{ scanner.name }}</span>
+                  <button
+                    type="button"
+                    class="copy-name-btn"
+                    @click="copyName(scanner)"
+                    :title="copied[scanner.scannerId] ? 'Copied' : 'Copy scanner name'"
+                    :aria-label="copied[scanner.scannerId] ? 'Copied' : 'Copy scanner name'"
+                  >
+                    <svg v-if="!copied[scanner.scannerId]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </button>
+                </h3>
                 <div class="scanner-device mono">{{ scanner.deviceId }}</div>
               </div>
-              <span
-                :class="[
-                  'status-badge',
-                  (scanner.status || 'Active') === 'Active' ? 'available' : 'neutral'
-                ]"
-              >
-                {{ scanner.status || 'Active' }}
-              </span>
             </div>
             <div class="scanner-card-footer">
-              <button class="edit-scanner-btn button-ghost" @click="openEdit(scanner)">
-                Edit scanner
+              <button class="edit-scanner-btn" @click="openEdit(scanner)">
+                Edit
               </button>
             </div>
           </div>
@@ -204,6 +213,34 @@ export default {
       isEditing.value = false
     }
 
+    const copied = reactive({})
+
+    const copyName = async (scanner) => {
+      try {
+        const text = scanner?.name || ''
+        if (!text) return
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text)
+        } else {
+          const textarea = document.createElement('textarea')
+          textarea.value = text
+          textarea.setAttribute('readonly', '')
+          textarea.style.position = 'absolute'
+          textarea.style.left = '-9999px'
+          document.body.appendChild(textarea)
+          textarea.select()
+          document.execCommand('copy')
+          document.body.removeChild(textarea)
+        }
+        copied[scanner.scannerId] = true
+        setTimeout(() => {
+          copied[scanner.scannerId] = false
+        }, 1400)
+      } catch (err) {
+        console.error('Failed to copy scanner name', err)
+      }
+    }
+
     const validate = () => {
       errors.name = ''
       errors.deviceId = ''
@@ -323,7 +360,9 @@ export default {
       openCreate,
       openEdit,
       closeModal,
-      submitForm
+      submitForm,
+      copied,
+      copyName
     }
   }
 }
@@ -383,11 +422,11 @@ export default {
   background: var(--card-bg, #ffffff);
   border: 2px solid var(--border-color);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1.25rem;
   position: relative;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 61, 107, 0.06);
-  transition: all 0.3s ease;
+  transition: all 0.22s ease;
 }
 
 .scanner-card::before {
@@ -413,25 +452,56 @@ export default {
   margin-bottom: 0.8rem;
   flex-wrap: wrap;
 }
-
 .scanner-badge {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.85rem;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
+  color: var(--badge-pill-text);
+  background: var(--badge-neutral-bg);
+  border: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease;
 }
-
 .scanner-badge.active {
-  background: linear-gradient(135deg, #4ade80 0%, #16a34a 100%);
-  color: #ffffff;
+  background: var(--badge-active-gradient);
+  color: #064e3b;
+  box-shadow: 0 8px 20px var(--badge-active-glow);
+}
+.scanner-badge.inactive {
+  background: var(--badge-inactive-gradient);
+}
+.scanner-badge:hover {
+  transform: translateY(-1px);
 }
 
-.scanner-badge.inactive {
-  background: linear-gradient(135deg, #9ca3af 0%, #4b5563 100%);
-  color: #ffffff;
+.scanner-card-footer {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 0.75rem;
+}
+
+.edit-scanner-btn {
+  background: transparent;
+  color: var(--primary-dark);
+  border: 1px solid var(--border-color);
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 64px;
+}
+
+.scanner-card-footer .primary-action-btn {
+  flex: 1 1 auto;
 }
 
 .scanner-name {
@@ -439,28 +509,64 @@ export default {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--primary-dark);
-}
-
-.scanner-device {
-  font-size: 0.85rem;
-}
-
-.scanner-card-footer {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 1rem;
+  align-items: center;
+  gap: 0.4rem;
 }
-
-.edit-scanner-btn {
+.scanner-name-text {
+  flex: 1;
+}
+.copy-name-btn {
+  border: 1px solid var(--border-color);
+  background: transparent;
   border-radius: 999px;
-  padding: 0.4rem 0.9rem;
-  font-size: 0.85rem;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+.copy-name-btn:hover {
+  border-color: var(--primary-light);
+  color: var(--primary-light);
+}
+.copy-name-btn svg {
+  display: block;
 }
 
 .scanner-card:hover {
   border-color: var(--primary-light);
   box-shadow: 0 8px 24px rgba(30, 144, 255, 0.15);
   transform: translateY(-2px);
+}
+
+[data-theme="dark"] .scanner-card {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+}
+
+[data-theme="dark"] .scanner-card::before {
+  background: linear-gradient(90deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+}
+
+[data-theme="dark"] .scanner-name {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .scanner-device {
+  color: var(--text-tertiary);
+}
+
+[data-theme="dark"] .copy-name-btn {
+  border-color: rgba(255,255,255,0.06);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .scanner-card-footer {
+  border-top: 1px solid rgba(255,255,255,0.02);
 }
 
 .add-scanner-btn {

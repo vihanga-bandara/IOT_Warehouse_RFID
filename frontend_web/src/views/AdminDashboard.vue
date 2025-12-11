@@ -5,6 +5,27 @@
     active-tab="dashboard"
   >
     <div class="dashboard-page-content">
+      <div v-if="showKioskHint" class="info-banner surface-card surface-card--compact">
+        <div class="info-banner-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
+        <div class="info-banner-content">
+          <p class="info-banner-title">Kiosk requires a scanner selection</p>
+          <p class="info-banner-text">
+            To use the kiosk as an admin, please log out and log in again with a scanner name selected. Regular users must always log in with a scanner name.
+          </p>
+        </div>
+        <button class="info-banner-close" @click="dismissKioskHint" aria-label="Dismiss">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
       <div v-if="loading" class="loading-state surface-card surface-card--padded">
         <div class="spinner"></div>
         <p>Loading inventory...</p>
@@ -78,7 +99,7 @@
         <div class="inventory-section surface-card surface-card--padded">
           <div class="section-header">
             <h2>Currently Borrowed Items</h2>
-            <span class="item-count">{{ borrowedItems.length }} items</span>
+            <span class="item-count">{{ borrowedItems.length }} item<span v-if="borrowedItems.length !== 1">s</span></span>
           </div>
 
           <div
@@ -134,6 +155,7 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import api from '../services/api'
 import AdminShell from '../components/AdminShell.vue'
 
@@ -143,9 +165,12 @@ export default {
     AdminShell
   },
   setup() {
+    const route = useRoute()
+    const router = useRouter()
     const items = ref([])
     const loading = ref(true)
     const transactions = ref([])
+    const showKioskHint = ref(route.query.kioskBlocked === '1')
 
     const latestActionByItem = computed(() => {
       const map = new Map()
@@ -224,6 +249,16 @@ export default {
       }
     }
 
+    const dismissKioskHint = () => {
+      showKioskHint.value = false
+      if (route.query.kioskBlocked) {
+        router.replace({
+          path: route.path,
+          query: { ...route.query, kioskBlocked: undefined }
+        })
+      }
+    }
+
     onMounted(async () => {
       loading.value = true
       await Promise.all([fetchItems(), fetchTransactions()])
@@ -236,7 +271,9 @@ export default {
       borrowedItems,
       totalItems,
       availableItems,
-      formatDate
+      formatDate,
+      showKioskHint,
+      dismissKioskHint
     }
   }
 }
@@ -253,6 +290,46 @@ export default {
 .dashboard-container {
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.info-banner {
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.12) 0%, rgba(255, 193, 7, 0.06) 100%);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.info-banner-icon {
+  margin-top: 0.1rem;
+  color: #ffb300;
+}
+
+.info-banner-content {
+  flex: 1;
+}
+
+.info-banner-title {
+  margin: 0 0 0.25rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.info-banner-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--accent-gray);
+}
+
+.info-banner-close {
+  border: none;
+  background: transparent;
+  color: var(--accent-gray);
+  cursor: pointer;
+  padding: 0.25rem;
 }
 
 .loading-state {
@@ -411,12 +488,15 @@ export default {
 }
 
 .item-count {
-  background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-green) 100%);
-  color: white;
-  padding: 0.4rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  border: 1px solid var(--border-color);
+  pointer-events: none;
+  user-select: none;
 }
 
 @media (max-width: 600px) {

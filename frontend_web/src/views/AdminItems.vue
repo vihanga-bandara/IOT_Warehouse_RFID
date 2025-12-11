@@ -24,7 +24,7 @@
             <option value="borrowed">Borrowed</option>
           </select>
         </div>
-        <button class="clear-filter-btn button-ghost" @click="clearFilters" v-if="searchTerm || statusFilter !== 'all'">
+        <button class="button-primary" @click="clearFilters" v-if="searchTerm || statusFilter !== 'all'">
           Clear
         </button>
       </div>
@@ -295,6 +295,47 @@ export default {
   border-color: #334155;
 }
 
+.button-primary {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: center;
+  color: white;
+  background: var(--primary);
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.3s;
+}
+
+.button-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.label-primary {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: var(--badge-pill-text);
+  background: var(--badge-available-gradient);
+}
+
+.label-secondary {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: var(--badge-pill-text);
+  background: var(--badge-borrowed-gradient);
+}
+
 .clear-filter-btn {
   align-self: center;
 }
@@ -374,7 +415,7 @@ export default {
   padding: 1rem 1.5rem;
   text-align: left;
   font-weight: 700;
-  color: var(--primary-dark);
+  color: var(--accent-gray);
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -415,33 +456,40 @@ export default {
 }
 
 .status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.35rem 0.7rem;
-  border-radius: 999px;
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
   font-weight: 700;
-  font-size: 0.85rem;
-  letter-spacing: 0.3px;
   text-transform: uppercase;
-  border: 1px solid transparent;
+  letter-spacing: 0.5px;
+  color: white;
+  background: var(--badge-neutral-bg);
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.18s ease;
 }
 
 .status-badge.available {
-  background: rgba(16, 185, 129, 0.12);
-  color: #0b9c72;
-  border-color: rgba(16, 185, 129, 0.25);
+  background: var(--badge-available-gradient);
+  color: var(--badge-available-text);
 }
 
 .status-badge.borrowed {
-  background: rgba(245, 158, 11, 0.16);
-  color: #c37300;
-  border-color: rgba(245, 158, 11, 0.3);
+  background: var(--badge-borrowed-gradient);
+  color: white;
+}
+
+[data-theme="dark"] .status-badge,
+[data-theme="dark"] .action-badge {
+  text-shadow: 0 1px 0 rgba(0,0,0,0.28);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
 }
 
 .status-badge.neutral {
-  background: rgba(107, 114, 128, 0.16);
-  color: #374151;
-  border-color: rgba(107, 114, 128, 0.3);
+  background: var(--badge-neutral-bg);
+  color: var(--badge-neutral-color);
+  box-shadow: none;
 }
 
 .holder-cell .holder-info {

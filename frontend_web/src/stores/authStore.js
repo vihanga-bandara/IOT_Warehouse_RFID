@@ -9,6 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref(storedUser && storedUser.role ? storedUser : null)
   const token = ref(user.value ? localStorage.getItem('authToken') : null)
   const scannerDeviceId = ref(localStorage.getItem('scannerDeviceId') || null)
+  const scannerName = ref(localStorage.getItem('scannerName') || null)
   
   // If user data is invalid, clear everything
   if (!user.value && localStorage.getItem('authToken')) {
@@ -18,9 +19,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
 
-  const login = async (email, password, scannerName) => {
+  const login = async (email, password, scannerNameInput) => {
     try {
-      const response = await api.post('/auth/login', { email, password, scannerName })
+      const response = await api.post('/auth/login', { email, password, scannerName: scannerNameInput })
       token.value = response.data.token
       // Map RoleIds to role name: if user has Admin role (1), they're Admin
       const hasAdminRole = response.data.roleIds && response.data.roleIds.includes(1)
@@ -33,12 +34,18 @@ export const useAuthStore = defineStore('auth', () => {
         role: hasAdminRole ? 'Admin' : 'User'
       }
       scannerDeviceId.value = response.data.scannerDeviceId || null
+      scannerName.value = response.data.scannerName || null
       localStorage.setItem('authToken', token.value)
       localStorage.setItem('user', JSON.stringify(user.value))
       if (scannerDeviceId.value) {
         localStorage.setItem('scannerDeviceId', scannerDeviceId.value)
       } else {
         localStorage.removeItem('scannerDeviceId')
+      }
+      if (scannerName.value) {
+        localStorage.setItem('scannerName', scannerName.value)
+      } else {
+        localStorage.removeItem('scannerName')
       }
       api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
       return response.data
@@ -67,9 +74,11 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     token.value = null
     scannerDeviceId.value = null
+    scannerName.value = null
     localStorage.removeItem('authToken')
     localStorage.removeItem('user')
     localStorage.removeItem('scannerDeviceId')
+    localStorage.removeItem('scannerName')
     delete api.defaults.headers.common['Authorization']
   }
 
@@ -83,6 +92,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     token,
     scannerDeviceId,
+    scannerName,
     isAuthenticated,
     login,
     register,
