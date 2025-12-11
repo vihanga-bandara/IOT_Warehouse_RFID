@@ -1,4 +1,4 @@
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 
 // Theme state
 const currentTheme = ref('light')
@@ -59,7 +59,7 @@ export function useTheme() {
   const getTheme = () => currentTheme.value
 
   // Check if dark mode is active
-  const isDark = () => currentTheme.value === 'dark'
+  const isDark = computed(() => currentTheme.value === 'dark')
 
   // Initialize on mount
   onMounted(() => {

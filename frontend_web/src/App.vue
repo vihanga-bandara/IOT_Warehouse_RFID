@@ -1,6 +1,5 @@
 <script setup>
 import { useTheme } from './composables/useTheme'
-import ThemeToggle from './components/ThemeToggle.vue'
 
 // Initialize theme
 useTheme()
@@ -8,9 +7,6 @@ useTheme()
 
 <template>
   <div class="app-wrapper">
-    <div class="theme-toggle-container">
-      <ThemeToggle />
-    </div>
     <router-view />
   </div>
 </template>
@@ -24,18 +20,6 @@ useTheme()
   height: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.theme-toggle-container {
-  position: fixed;
-  top: var(--spacing-md);
-  right: var(--spacing-md);
-  z-index: 500;
-
-  @include respond-to("md") {
-    top: var(--spacing-sm);
-    right: var(--spacing-sm);
-  }
 }
 </style>
 

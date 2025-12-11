@@ -142,6 +142,29 @@ input,
 textarea,
 select {
   @include input-base;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  
+  &:focus {
+    border-color: var(--primary-light);
+    outline: none;
+  }
+}
+
+[data-theme="dark"] {
+  input,
+  textarea,
+  select {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+
+    &:focus {
+      background-color: var(--bg-secondary);
+      border-color: var(--primary-light);
+    }
+  }
 }
 
 input[type='checkbox'],
