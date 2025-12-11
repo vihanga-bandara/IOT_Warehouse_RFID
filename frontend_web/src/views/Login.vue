@@ -3,7 +3,7 @@
     <div class="login-card surface-card surface-card--padded">
       <div class="logo-section">
         <img src="/tooltrack-logo.png" alt="ToolTrackPro Logo" class="logo-image" />
-        <p class="subtitle">Smart RFID Warehouse Management</p>
+        <p class="subtitle">Smart Tool Tracking System</p>
       </div>
 
       <transition name="fade">
@@ -30,7 +30,7 @@
             v-model="email"
             type="email"
             required
-            placeholder="your.email@company.com"
+            placeholder="Enter your email"
             autocomplete="email"
           />
         </div>
@@ -43,14 +43,26 @@
             </svg>
             Password
           </label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            required
-            placeholder="Enter your password"
-            autocomplete="current-password"
-          />
+          <div class="password-input-wrapper">
+            <input
+              id="password"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              required
+              placeholder="Enter your password"
+              autocomplete="current-password"
+            />
+            <button type="button" class="password-toggle" @click="showPassword = !showPassword" :title="showPassword ? 'Hide password' : 'Show password'">
+              <svg v-if="showPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="form-group">
@@ -64,9 +76,9 @@
             id="scannerName"
             v-model="scannerName"
             type="text"
-            placeholder="e.g. Front Desk Kiosk"
+            placeholder="Check scanner for the name"
           />
-          <small class="hint">Required for users going directly to kiosk. Admins can leave this empty and set it later.</small>
+          <small class="hint">Required to access kiosk view</small>
         </div>
 
         <button type="submit" class="login-btn" :disabled="loading">
@@ -110,6 +122,7 @@ export default {
     const scannerName = ref('')
     const error = ref('')
     const loading = ref(false)
+    const showPassword = ref(false)
     const router = useRouter()
     const route = useRoute()
     const authStore = useAuthStore()
@@ -128,7 +141,20 @@ export default {
           router.push('/kiosk')
         }
       } catch (err) {
-        error.value = err.response?.data?.message || 'Login failed. Please check your credentials.'
+        // Log full error for debugging
+        console.error('Login error response:', err?.response ?? err)
+        const serverMessage = err.response?.data?.message
+        // If backend returned a 400 (scanner missing/not found), show it in the scanner notice area
+        if (err.response?.status === 400 && serverMessage) {
+          scannerNotice.value = serverMessage
+          error.value = ''
+        } else {
+          error.value = serverMessage || 'Login failed. Please check your credentials.'
+        }
+        // Clear form inputs on login failure
+        email.value = ''
+        password.value = ''
+        scannerName.value = ''
       } finally {
         loading.value = false
       }
@@ -146,6 +172,7 @@ export default {
       scannerName,
       error,
       loading,
+      showPassword,
       handleLogin,
       scannerNotice
     }
@@ -516,6 +543,40 @@ export default {
 .badge-user {
   background: linear-gradient(135deg, var(--accent-green) 0%, #45a049 100%);
   color: white;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding-right: 2.5rem;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  padding: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.password-toggle:hover {
+  color: var(--primary-light);
+}
+
+.password-toggle svg {
+  width: 20px;
+  height: 20px;
 }
 
 @media (max-width: 500px) {

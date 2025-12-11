@@ -175,37 +175,73 @@
               <h3>Change Password</h3>
               <div class="form-group">
                 <label for="currentPassword">Current password</label>
-                <input
-                  id="currentPassword"
-                  v-model="passwordForm.currentPassword"
-                  type="password"
-                  required
-                  class="form-input"
-                  autocomplete="current-password"
-                />
+                <div class="password-input-wrapper">
+                  <input
+                    id="currentPassword"
+                    v-model="passwordForm.currentPassword"
+                    :type="showCurrentPassword ? 'text' : 'password'"
+                    required
+                    class="form-input"
+                    autocomplete="current-password"
+                  />
+                  <button type="button" class="password-toggle" @click="showCurrentPassword = !showCurrentPassword" :title="showCurrentPassword ? 'Hide password' : 'Show password'">
+                    <svg v-if="showCurrentPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div class="form-row">
                 <div class="form-group">
                   <label for="newPassword">New password</label>
-                  <input
-                    id="newPassword"
-                    v-model="passwordForm.newPassword"
-                    type="password"
-                    required
-                    class="form-input"
-                    autocomplete="new-password"
-                  />
+                  <div class="password-input-wrapper">
+                    <input
+                      id="newPassword"
+                      v-model="passwordForm.newPassword"
+                      :type="showNewPassword ? 'text' : 'password'"
+                      required
+                      class="form-input"
+                      autocomplete="new-password"
+                    />
+                    <button type="button" class="password-toggle" @click="showNewPassword = !showNewPassword" :title="showNewPassword ? 'Hide password' : 'Show password'">
+                      <svg v-if="showNewPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                      <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                        <line x1="1" y1="1" x2="23" y2="23"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 <div class="form-group">
                   <label for="confirmPassword">Confirm new password</label>
-                  <input
-                    id="confirmPassword"
-                    v-model="passwordForm.confirmNewPassword"
-                    type="password"
-                    required
-                    class="form-input"
-                    autocomplete="new-password"
-                  />
+                  <div class="password-input-wrapper">
+                    <input
+                      id="confirmPassword"
+                      v-model="passwordForm.confirmNewPassword"
+                      :type="showConfirmPassword ? 'text' : 'password'"
+                      required
+                      class="form-input"
+                      autocomplete="new-password"
+                    />
+                    <button type="button" class="password-toggle" @click="showConfirmPassword = !showConfirmPassword" :title="showConfirmPassword ? 'Hide password' : 'Show password'">
+                      <svg v-if="showConfirmPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                      <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                        <line x1="1" y1="1" x2="23" y2="23"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -263,6 +299,9 @@ export default {
       newPassword: '',
       confirmNewPassword: ''
     })
+    const showCurrentPassword = ref(false)
+    const showNewPassword = ref(false)
+    const showConfirmPassword = ref(false)
     const passwordSaving = ref(false)
     const passwordError = ref('')
     const passwordSuccess = ref('')
@@ -373,6 +412,9 @@ export default {
       accountLoading,
       accountProfile,
       passwordForm,
+      showCurrentPassword,
+      showNewPassword,
+      showConfirmPassword,
       passwordSaving,
       passwordError,
       passwordSuccess,
@@ -964,6 +1006,39 @@ export default {
 
 .password-message.success {
   color: var(--accent-green);
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper .form-input {
+  padding-right: 2.5rem;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  padding: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.password-toggle:hover {
+  color: var(--primary-light);
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
 }
 
 .admin-footer {
