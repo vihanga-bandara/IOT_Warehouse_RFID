@@ -67,27 +67,6 @@
           {{ error }}
         </div>
       </transition>
-
-      <div class="divider"></div>
-
-      <div class="test-credentials">
-        <div class="credentials-header">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="16" x2="12" y2="12"/>
-            <line x1="12" y1="8" x2="12.01" y2="8"/>
-          </svg>
-          <strong>Demo Credentials</strong>
-        </div>
-        <div class="credential-item">
-          <span class="badge badge-admin">Admin</span>
-          <code>admin@warehouse.com / password123</code>
-        </div>
-        <div class="credential-item">
-          <span class="badge badge-user">User</span>
-          <code>john.doe@warehouse.com / password123</code>
-        </div>
-      </div>
     </div>
   </div>
 </template>

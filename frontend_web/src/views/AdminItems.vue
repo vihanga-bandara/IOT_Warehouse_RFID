@@ -1,52 +1,10 @@
 <template>
-  <div class="items-page">
-    <div class="items-container">
-      <div class="page-header">
-        <div>
-          <h1>Items</h1>
-          <p class="page-subtitle">Browse all warehouse items and their status</p>
-        </div>
-        <router-link to="/dashboard" class="back-button">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          Back to Dashboard
-        </router-link>
-      </div>
-
-      <nav class="admin-nav">
-        <router-link to="/dashboard" class="nav-link">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
-          Dashboard
-        </router-link>
-        <router-link to="/admin/items" class="nav-link active">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="16" rx="2" ry="2" />
-            <path d="M3 10h18" />
-          </svg>
-          Items
-        </router-link>
-        <router-link to="/admin/transactions" class="nav-link">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z" />
-            <path d="M12 6v6l4 2" />
-          </svg>
-          Transactions
-        </router-link>
-        <router-link to="/admin/users" class="nav-link">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-          Users
-        </router-link>
-      </nav>
-
+  <AdminShell
+    title="Items"
+    subtitle="Browse all warehouse items and their status"
+    active-tab="items"
+  >
+    <div class="items-page-content">
       <div class="filters-bar surface-card surface-card--padded">
         <div class="filter-group">
           <label for="search-term">Search</label>
@@ -123,15 +81,19 @@
         </div>
       </div>
     </div>
-  </div>
+  </AdminShell>
 </template>
 
 <script>
 import { ref, computed, onMounted } from 'vue'
 import api from '../services/api'
+import AdminShell from '../components/AdminShell.vue'
 
 export default {
   name: 'AdminItems',
+  components: {
+    AdminShell
+  },
   setup() {
     const items = ref([])
     const loading = ref(true)
@@ -199,27 +161,47 @@ export default {
           (statusFilter.value === 'borrowed' && derivedBorrowState(item)) ||
           (statusFilter.value === 'available' && !derivedBorrowState(item))
 
-        const matchesSearch = !term || [
+        const searchable = [
           item.itemName,
           item.description,
           item.rfidUid,
           item.currentHolderName,
-          item.currentHolderEmail,
-          latestActionByItem.value.get(item.id || item.itemId)?.userName
+          item.currentHolderEmail
         ]
           .filter(Boolean)
-          .some(field => field.toString().toLowerCase().includes(term))
+          .map(v => v.toString().toLowerCase())
+
+        const matchesSearch = !term || searchable.some(v => v.includes(term))
 
         return matchesStatus && matchesSearch
       })
     })
 
+    const holderName = (item) => {
+      if (item.currentHolderName) return item.currentHolderName
+      if (item.currentHolder && (item.currentHolder.name || item.currentHolder.lastname)) {
+        return `${item.currentHolder.name ?? ''} ${item.currentHolder.lastname ?? ''}`.trim()
+      }
+      return 'Unknown holder'
+    }
+
+    const formatDate = (value) => {
+      if (!value) return '—'
+      return new Date(value).toLocaleString()
+    }
+
+    const clearFilters = () => {
+      searchTerm.value = ''
+      statusFilter.value = 'all'
+    }
+
     const fetchItems = async () => {
       try {
         const response = await api.get('/items')
-        items.value = response.data || []
+        items.value = Array.isArray(response.data) ? response.data : (response.data?.items ?? [])
       } catch (err) {
         console.error('Failed to fetch items:', err)
+        items.value = []
       }
     }
 
@@ -228,33 +210,18 @@ export default {
         const response = await api.get('/transaction/all')
         const payload = response?.data?.data ?? response?.data ?? []
         const list = Array.isArray(payload) ? payload : []
+
         transactions.value = list.map((tx, idx) => ({
-          itemId: tx.item?.id ?? tx.itemId,
-          action: tx.action || '',
-          timestamp: tx.timestamp || tx.createdAt || new Date().toISOString(),
-          userName: tx.user ? `${tx.user.name ?? ''} ${tx.user.lastname ?? ''}`.trim() || tx.user.email || 'Unknown user' : tx.userName,
-          idx
+          id: tx.transactionId ?? tx.id ?? idx,
+          itemId: tx.item?.itemId ?? tx.itemId,
+          action: tx.action ?? '',
+          userName: tx.user ? `${tx.user.name ?? ''} ${tx.user.lastname ?? ''}`.trim() || 'Unknown user' : 'Unknown user',
+          timestamp: tx.timestamp ?? tx.createdAt ?? new Date().toISOString()
         }))
       } catch (err) {
-        console.error('Failed to fetch transactions:', err)
+        console.error('Failed to fetch transactions for items view:', err)
+        transactions.value = []
       }
-    }
-
-    const clearFilters = () => {
-      searchTerm.value = ''
-      statusFilter.value = 'all'
-    }
-
-    const formatDate = (timestamp) => {
-      if (!timestamp) return 'Unknown'
-      return new Date(timestamp).toLocaleString()
-    }
-
-    const holderName = (item) => {
-      const latest = latestActionByItem.value.get(item.id || item.itemId)
-      if (latest && derivedBorrowState(item)) return latest.userName || 'Unknown user'
-      if (derivedBorrowState(item)) return item.currentHolderName || 'Unknown user'
-      return 'Not borrowed'
     }
 
     onMounted(async () => {
@@ -269,142 +236,18 @@ export default {
       searchTerm,
       statusFilter,
       filteredItems,
+      derivedBorrowState,
       statusLabel,
       statusClass,
+      holderName,
       formatDate,
-      clearFilters,
-      derivedBorrowState,
-      holderName
+      clearFilters
     }
   }
 }
 </script>
 
-<style scoped>
-.items-page {
-  width: 100%;
-  min-height: 100vh;
-  background: var(--gradient-page-bg);
-  padding: 2rem 1rem;
-}
-
-.items-container {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2.5rem;
-  animation: slideDown 0.4s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.page-header h1 {
-  color: var(--primary-dark);
-  margin: 0 0 0.5rem;
-  font-size: 2.5rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.page-subtitle {
-  color: var(--accent-gray);
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 500;
-}
-
-.back-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
-  color: white;
-  text-decoration: none;
-  border-radius: 10px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.3);
-}
-
-.back-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(30, 144, 255, 0.4);
-}
-
-.admin-nav {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
-  border-bottom: 2px solid rgba(30, 144, 255, 0.1);
-  padding-bottom: 1rem;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  color: var(--accent-gray);
-  text-decoration: none;
-  border-bottom: 3px solid transparent;
-  transition: all 0.3s ease;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border-radius: 8px 8px 0 0;
-}
-
-.nav-link svg {
-  opacity: 0.7;
-  transition: opacity 0.3s;
-}
-
-.nav-link:hover {
-  color: var(--primary-light);
-}
-
-.nav-link:hover svg {
-  opacity: 1;
-}
-
-.nav-link.active {
-  color: var(--primary-light);
-  border-bottom-color: var(--primary-light);
-  background: rgba(30, 144, 255, 0.05);
-}
-
-.nav-link.active svg {
-  opacity: 1;
-}
-
-@media (max-width: 600px) {
-  .admin-nav {
-    gap: 0;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  .nav-link {
-    padding: 0.6rem 1rem;
-    font-size: 0.85rem;
-    white-space: nowrap;
-  }
-}
-
+<style>
 .filters-bar {
   display: flex;
   justify-content: space-between;

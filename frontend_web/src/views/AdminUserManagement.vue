@@ -1,46 +1,10 @@
 <template>
-  <div class="users-page">
-    <div class="users-container">
-      <div class="page-header">
-        <div>
-          <h1>User Management</h1>
-          <p class="page-subtitle">Add and manage warehouse users</p>
-        </div>
-        <button @click="showRegisterForm = true" class="add-user-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5v14M5 12h14"/>
-          </svg>
-          Add New User
-        </button>
-      </div>
-
-      <nav class="admin-nav">
-        <router-link to="/dashboard" class="nav-link">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-          </svg>
-          Dashboard
-        </router-link>
-        <router-link to="/admin/items" class="nav-link">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="16" rx="2" ry="2"/><path d="M3 10h18"/>
-          </svg>
-          Items
-        </router-link>
-        <router-link to="/admin/transactions" class="nav-link">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"/><path d="M12 6v6l4 2"/>
-          </svg>
-          Transactions
-        </router-link>
-        <router-link to="/admin/users" class="nav-link active">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          Users
-        </router-link>
-      </nav>
-
+  <AdminShell
+    title="User Management"
+    subtitle="Add and manage warehouse users"
+    active-tab="users"
+  >
+    <div class="users-page-content">
       <transition name="modal-fade">
         <div v-if="showRegisterForm" class="modal-overlay">
           <div class="form-modal" @click.stop>
@@ -118,6 +82,34 @@
                 </div>
               </div>
 
+              <div class="form-group roles-group">
+                <label class="roles-label">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="7" r="4"/>
+                    <path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>
+                  </svg>
+                  Roles &amp; permissions
+                </label>
+                <div class="roles-options">
+                  <label
+                    v-for="role in availableRoles"
+                    :key="role.id"
+                    class="role-option"
+                  >
+                    <input
+                      type="checkbox"
+                      :value="role.id"
+                      v-model="selectedRoleIds"
+                    />
+                    <div class="role-option-text">
+                      <span class="role-name">{{ role.name }}</span>
+                      <span class="role-description" v-if="role.description">{{ role.description }}</span>
+                    </div>
+                  </label>
+                </div>
+                <p class="roles-hint">Select one or both roles. At least one role is required.</p>
+              </div>
+
               <div class="form-buttons">
                 <button type="submit" class="btn btn-primary">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -131,6 +123,95 @@
                   </svg>
                   Cancel
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </transition>
+
+      <transition name="modal-fade">
+        <div v-if="showEditForm" class="modal-overlay">
+          <div class="form-modal" @click.stop>
+            <button class="modal-close" @click="showEditForm = false">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+            <h2>Edit User</h2>
+            <form @submit.prevent="updateUser" class="register-form">
+              <div class="form-group">
+                <label for="edit-email">Email Address</label>
+                <input
+                  id="edit-email"
+                  v-model="editForm.email"
+                  type="email"
+                  class="form-input"
+                  :class="{ 'has-error': errors.email }"
+                />
+                <span v-if="errors.email" class="error-message">{{ errors.email }}</span>
+              </div>
+
+              <div class="form-group">
+                <label for="edit-password">New Password (Optional)</label>
+                <input
+                  id="edit-password"
+                  v-model="editForm.newPassword"
+                  type="password"
+                  placeholder="Leave blank to keep current"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="edit-name">First Name</label>
+                  <input
+                    id="edit-name"
+                    v-model="editForm.name"
+                    type="text"
+                    class="form-input"
+                    :class="{ 'has-error': errors.name }"
+                  />
+                  <span v-if="errors.name" class="error-message">{{ errors.name }}</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="edit-lastname">Last Name</label>
+                  <input
+                    id="edit-lastname"
+                    v-model="editForm.lastname"
+                    type="text"
+                    class="form-input"
+                    :class="{ 'has-error': errors.lastname }"
+                  />
+                  <span v-if="errors.lastname" class="error-message">{{ errors.lastname }}</span>
+                </div>
+              </div>
+
+              <div class="form-group roles-group">
+                <label class="roles-label">Roles &amp; permissions</label>
+                <div class="roles-options">
+                  <label
+                    v-for="role in availableRoles"
+                    :key="role.id"
+                    class="role-option"
+                  >
+                    <input
+                      type="checkbox"
+                      :value="role.id"
+                      v-model="editForm.roleIds"
+                    />
+                    <div class="role-option-text">
+                      <span class="role-name">{{ role.name }}</span>
+                    </div>
+                  </label>
+                </div>
+                <span v-if="errors.roles" class="error-message">{{ errors.roles }}</span>
+              </div>
+
+              <div class="form-buttons">
+                <button type="submit" class="btn btn-primary">Update User</button>
+                <button type="button" @click="showEditForm = false" class="btn btn-secondary">Cancel</button>
               </div>
             </form>
           </div>
@@ -154,14 +235,31 @@
               class="filter-input"
             />
           </div>
-          <button class="clear-filter-btn button-ghost" @click="userFilter = ''" v-if="userFilter">
-            Clear
-          </button>
+          <div class="filter-actions">
+            <button class="clear-filter-btn button-ghost" @click="userFilter = ''" v-if="userFilter">
+              Clear
+            </button>
+            <button @click="showRegisterForm = true" class="add-user-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              Add New User
+            </button>
+          </div>
         </div>
 
         <div class="users-grid">
           <div v-for="user in filteredUsers" :key="user.id" class="user-card">
-            <div class="user-badge">{{ user.role }}</div>
+            <div class="user-badges">
+              <span 
+                v-for="role in (user.roles || [])" 
+                :key="role.id" 
+                class="user-badge"
+                :class="role.name.toLowerCase()"
+              >
+                {{ role.name }}
+              </span>
+            </div>
             <h3 class="user-name">{{ user.name }} {{ user.lastname }}</h3>
             <div class="user-details">
               <div class="detail-item">
@@ -190,7 +288,9 @@
               </div>
             </div>
             <div class="user-footer">
-              <small>ID: {{ user.id }}</small>
+              <button @click="openEditUser(user)" class="edit-user-btn button-ghost">
+                Edit
+              </button>
               <button @click="viewUserTransactions(user.id)" class="view-transactions-btn">
                 View Transactions
               </button>
@@ -205,7 +305,6 @@
           <p>No users found. Create one using the "Add New User" button.</p>
         </div>
       </div>
-    </div>
 
     <!-- Transaction Modal -->
     <transition name="modal-fade">
@@ -266,32 +365,59 @@
         </div>
       </div>
     </transition>
-  </div>
+
+    </div>
+  </AdminShell>
 </template>
 
 <script>
 import { ref, computed, onMounted} from 'vue'
-import { useRouter } from 'vue-router'
 import api from '../services/api'
+import AdminShell from '../components/AdminShell.vue'
 
 export default {
   name: 'AdminUserManagement',
+  components: {
+    AdminShell
+  },
   setup() {
-    const router = useRouter()
     const users = ref([])
     const loading = ref(true)
     const userFilter = ref('')
     const showRegisterForm = ref(false)
+    const showEditForm = ref(false)
     const showTransactionModal = ref(false)
     const selectedUser = ref(null)
+    const editingUser = ref(null)
     const userTransactions = ref([])
     const loadingTransactions = ref(false)
+    const availableRoles = ref([
+      {
+        id: 2,
+        name: 'User',
+        description: 'Standard user access for borrowing and returning tools'
+      },
+      {
+        id: 1,
+        name: 'Admin',
+        description: 'Full administrative access to dashboards and management tools'
+      }
+    ])
+    const selectedRoleIds = ref([2])
     const newUser = ref({
       email: '',
       password: '',
       name: '',
       lastname: ''
     })
+    const editForm = ref({
+      email: '',
+      name: '',
+      lastname: '',
+      roleIds: [],
+      newPassword: ''
+    })
+    const errors = ref({})
 
     const fetchUsers = async () => {
       try {
@@ -306,15 +432,32 @@ export default {
       }
     }
 
+    const fetchRoles = async () => {
+      try {
+        const response = await api.get('/auth/roles')
+        const roles = Array.isArray(response.data) ? response.data : []
+        if (roles.length) {
+          availableRoles.value = roles.map(r => ({
+            id: r.roleId,
+            name: r.roleName,
+            description: r.description || ''
+          }))
+        }
+      } catch (err) {
+        console.error('Failed to fetch roles:', err)
+      }
+    }
+
     const filteredUsers = computed(() => {
       const term = userFilter.value.trim().toLowerCase()
       if (!term) return users.value
       return users.value.filter(u => {
+        const rolesStr = (u.roles || []).map(r => r.name).join(' ').toLowerCase()
         return (
           (u.name && u.name.toLowerCase().includes(term)) ||
           (u.lastname && u.lastname.toLowerCase().includes(term)) ||
           (u.email && u.email.toLowerCase().includes(term)) ||
-          (u.role && u.role.toLowerCase().includes(term)) ||
+          rolesStr.includes(term) ||
           (u.rfidUid && u.rfidUid.toLowerCase().includes(term))
         )
       })
@@ -322,12 +465,65 @@ export default {
 
     const registerUser = async () => {
       try {
-        await api.post('/auth/register', newUser.value)
+        if (!selectedRoleIds.value.length) {
+          selectedRoleIds.value = [2]
+        }
+
+        await api.post('/auth/register', {
+          ...newUser.value,
+          roleIds: selectedRoleIds.value
+        })
+
         newUser.value = { email: '', password: '', name: '', lastname: '' }
+        selectedRoleIds.value = [2]
         showRegisterForm.value = false
         fetchUsers()
       } catch (err) {
         console.error('Registration failed:', err)
+      }
+    }
+
+    const openEditUser = (user) => {
+      editingUser.value = user
+      editForm.value = {
+        email: user.email,
+        name: user.name,
+        lastname: user.lastname,
+        roleIds: (user.roles || []).map(r => r.id),
+        newPassword: ''
+      }
+      errors.value = {}
+      showEditForm.value = true
+    }
+
+    const validateForm = () => {
+      const errs = {}
+      if (!editForm.value.name?.trim()) errs.name = 'First name is required'
+      if (!editForm.value.lastname?.trim()) errs.lastname = 'Last name is required'
+      if (!editForm.value.email?.trim()) errs.email = 'Email is required'
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.value.email)) errs.email = 'Invalid email format'
+      
+      if (!editForm.value.roleIds || editForm.value.roleIds.length === 0) {
+        errs.roles = 'At least one role is required'
+      }
+      
+      errors.value = errs
+      return Object.keys(errs).length === 0
+    }
+
+    const updateUser = async () => {
+      if (!validateForm()) return
+
+      try {
+        await api.put(`/auth/users/${editingUser.value.id}`, editForm.value)
+        showEditForm.value = false
+        fetchUsers()
+      } catch (err) {
+        console.error('Update failed:', err)
+        if (err.response?.data?.errors) {
+           // Map backend validation errors if any
+           // Assuming backend returns standard ASP.NET validation format
+        }
       }
     }
 
@@ -380,6 +576,7 @@ export default {
 
     onMounted(() => {
       fetchUsers()
+      fetchRoles()
     })
 
     return {
@@ -388,12 +585,20 @@ export default {
       userFilter,
       loading,
       showRegisterForm,
+      showEditForm,
       showTransactionModal,
       selectedUser,
+      editingUser,
       userTransactions,
       loadingTransactions,
+      availableRoles,
+      selectedRoleIds,
       newUser,
+      editForm,
+      errors,
       registerUser,
+      openEditUser,
+      updateUser,
       actionLabel,
       actionClass,
       viewUserTransactions,
@@ -405,51 +610,10 @@ export default {
 </script>
 
 <style scoped>
-.users-page {
+.users-page-content {
   width: 100%;
-  min-height: 100vh;
-  background: var(--gradient-page-bg);
-  padding: 2rem 1rem;
 }
 
-.users-container {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2.5rem;
-  animation: slideDown 0.4s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.page-header h1 {
-  color: var(--primary-dark);
-  margin: 0 0 0.5rem;
-  font-size: 2.5rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.page-subtitle {
-  color: var(--accent-gray);
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 500;
-}
 
 .add-user-btn {
   display: flex;
@@ -472,93 +636,14 @@ export default {
   box-shadow: 0 6px 20px rgba(30, 144, 255, 0.4);
 }
 
-.admin-nav {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
-  border-bottom: 2px solid rgba(30, 144, 255, 0.1);
-  padding-bottom: 1rem;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  color: var(--accent-gray);
-  text-decoration: none;
-  border-bottom: 3px solid transparent;
-  transition: all 0.3s ease;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border-radius: 8px 8px 0 0;
-}
-
-.nav-link svg {
-  opacity: 0.7;
-  transition: opacity 0.3s;
-}
-
-.nav-link:hover {
-  color: var(--primary-light);
-}
-
-.nav-link:hover svg {
-  opacity: 1;
-}
-
-.nav-link.active {
-  color: var(--primary-light);
-  border-bottom-color: var(--primary-light);
-  background: rgba(30, 144, 255, 0.05);
-}
-
-.nav-link.active svg {
-  opacity: 1;
-}
-
 @media (max-width: 600px) {
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-
-  .page-header h1 {
-    font-size: 1.8rem;
-  }
-
-  .page-subtitle {
-    font-size: 0.95rem;
-  }
-
   .add-user-btn {
     width: 100%;
     justify-content: center;
   }
-
-  .admin-nav {
-    gap: 0;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  .nav-link {
-    padding: 0.6rem 1rem;
-    font-size: 0.85rem;
-    white-space: nowrap;
-  }
 }
 
-@media (max-width: 400px) {
-  .page-header h1 {
-    font-size: 1.4rem;
-  }
 
-  .page-subtitle {
-    font-size: 0.85rem;
-  }
-}
 
 .modal-overlay {
   position: fixed;
@@ -667,6 +752,10 @@ export default {
   color: var(--primary-light);
 }
 
+[data-theme="dark"] .form-group label {
+  color: #cbd5e1;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -697,6 +786,17 @@ export default {
   box-shadow: 0 0 0 4px rgba(30, 144, 255, 0.1);
 }
 
+[data-theme="dark"] .form-input {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .form-input:focus {
+  background: #0f172a;
+  border-color: var(--primary-light);
+}
+
 .form-input::placeholder {
   color: var(--text-tertiary);
 }
@@ -713,6 +813,72 @@ export default {
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   margin-top: 1rem;
+}
+
+.roles-group {
+  margin-top: 0.5rem;
+}
+
+.roles-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--dark-text);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.roles-label svg {
+  color: var(--primary-light);
+}
+
+.roles-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.role-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.role-option input {
+  margin-top: 0.2rem;
+}
+
+.role-option-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.role-name {
+  font-weight: 600;
+  color: var(--dark-text);
+}
+
+.role-description {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.role-option:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.1);
+}
+
+.roles-hint {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
 }
 
 .btn {
@@ -832,6 +998,12 @@ export default {
   border-color: #334155;
 }
 
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .clear-filter-btn {
   align-self: center;
 }
@@ -891,17 +1063,49 @@ export default {
   box-shadow: 0 8px 24px rgba(30, 144, 255, 0.3);
 }
 
+.user-badges {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  flex-wrap: wrap;
+}
+
 .user-badge {
   display: inline-block;
-  background: linear-gradient(135deg, var(--accent-green) 0%, #45a049 100%);
-  color: white;
   padding: 0.4rem 0.8rem;
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 0.8rem;
+}
+
+.user-badge.admin {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);
+  color: white;
+}
+
+.user-badge.user {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+}
+
+.edit-user-btn {
+  background: transparent;
+  color: var(--primary-dark);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 0.5rem;
+}
+
+.edit-user-btn:hover {
+  background: var(--bg-light);
+  border-color: var(--primary-light);
 }
 
 .user-name {
@@ -1327,6 +1531,21 @@ export default {
 .empty-state svg {
   opacity: 0.5;
   margin-bottom: 1rem;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.form-input.has-error {
+  border-color: #ef4444;
+}
+
+.form-input.has-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
 
 .empty-state p {

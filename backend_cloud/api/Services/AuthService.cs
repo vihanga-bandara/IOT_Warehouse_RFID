@@ -11,6 +11,8 @@ public interface IAuthService
     Task<AuthResponseDto?> LoginAsync(LoginDto loginDto);
     Task<AuthResponseDto?> RegisterAsync(RegisterDto registerDto);
     Task<User?> GetUserByIdAsync(int userId);
+    Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword);
+    Task<User?> UpdateUserAsync(int userId, AdminUpdateUserDto dto);
 }
 
 public class AuthService : IAuthService
@@ -135,5 +137,73 @@ public class AuthService : IAuthService
     public async Task<User?> GetUserByIdAsync(int userId)
     {
         return await _context.Users.FindAsync(userId);
+    }
+
+    public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                _logger.LogWarning("ChangePasswordAsync: User not found for id {UserId}", userId);
+                return false;
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+            {
+                _logger.LogWarning("ChangePasswordAsync: Invalid current password for user {Email}", user.Email);
+                return false;
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Password updated for user {Email}", user.Email);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error changing password for user id {UserId}", userId);
+            return false;
+        }
+    }
+
+    public async Task<User?> UpdateUserAsync(int userId, AdminUpdateUserDto dto)
+    {
+        try
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRights)
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null) return null;
+
+            if (!string.IsNullOrWhiteSpace(dto.Email)) user.Email = dto.Email;
+            if (!string.IsNullOrWhiteSpace(dto.Name)) user.Name = dto.Name;
+            if (!string.IsNullOrWhiteSpace(dto.Lastname)) user.Lastname = dto.Lastname;
+
+            if (!string.IsNullOrWhiteSpace(dto.NewPassword))
+            {
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            }
+
+            if (dto.RoleIds != null && dto.RoleIds.Any())
+            {
+                _context.UserRights.RemoveRange(user.UserRights);
+                foreach (var rid in dto.RoleIds)
+                {
+                    _context.UserRights.Add(new UserRight { UserId = user.UserId, RoleId = rid });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return user;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user id {UserId}", userId);
+            return null;
+        }
     }
 }
