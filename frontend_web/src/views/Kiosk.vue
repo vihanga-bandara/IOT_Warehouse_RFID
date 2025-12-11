@@ -145,7 +145,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useCartStore } from '../stores/cartStore'
 import { useTheme } from '../composables/useTheme'
 import api from '../services/api'
-import { initSignalR, onCartUpdated, closeSignalR } from '../services/signalr'
+import { initSignalR, onCartUpdated, joinScannerGroup, closeSignalR } from '../services/signalr'
 
 export default {
   name: 'Kiosk',
@@ -197,7 +197,10 @@ export default {
     const commitTransaction = async () => {
       processing.value = true
       try {
-        await api.post('/transaction/commit')
+        await api.post('/transaction/commit', {
+          deviceId: authStore.scannerDeviceId,
+          notes: null
+        })
         cartStore.clear()
         message.value = { type: 'success', text: 'Transaction completed successfully!' }
         setTimeout(() => {
@@ -221,6 +224,9 @@ export default {
       try {
         const token = localStorage.getItem('authToken')
         await initSignalR(token)
+        if (authStore.scannerDeviceId) {
+          await joinScannerGroup(authStore.scannerDeviceId)
+        }
         onCartUpdated((updatedCart) => {
           cartStore.updateFromServer(updatedCart)
         })

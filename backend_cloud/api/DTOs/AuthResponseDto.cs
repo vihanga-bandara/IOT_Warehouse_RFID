@@ -8,4 +8,8 @@ public class AuthResponseDto
     public string Lastname { get; set; } = string.Empty;
     public int UserId { get; set; }
     public List<int> RoleIds { get; set; } = new List<int>();
+
+    // Scanner binding info for kiosk flows
+    public string? ScannerDeviceId { get; set; }
+    public string? ScannerName { get; set; }
 }

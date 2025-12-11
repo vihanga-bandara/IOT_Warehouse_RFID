@@ -43,6 +43,22 @@
           />
         </div>
 
+        <div class="form-group">
+          <label for="scannerName">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            </svg>
+            Scanner / Kiosk Name
+          </label>
+          <input
+            id="scannerName"
+            v-model="scannerName"
+            type="text"
+            placeholder="e.g. Front Desk Kiosk"
+          />
+          <small class="hint">Required for users going directly to kiosk. Admins can leave this empty and set it later.</small>
+        </div>
+
         <button type="submit" class="login-btn" :disabled="loading">
           <span v-if="!loading">Sign In</span>
           <span v-else class="loading-spinner">
@@ -81,6 +97,7 @@ export default {
   setup() {
     const email = ref('')
     const password = ref('')
+    const scannerName = ref('')
     const error = ref('')
     const loading = ref(false)
     const router = useRouter()
@@ -91,7 +108,7 @@ export default {
       loading.value = true
 
       try {
-        await authStore.login(email.value, password.value)
+        await authStore.login(email.value, password.value, scannerName.value)
         // Redirect based on user role
         if (authStore.user?.role === 'Admin') {
           router.push('/dashboard')
@@ -108,6 +125,7 @@ export default {
     return {
       email,
       password,
+      scannerName,
       error,
       loading,
       handleLogin

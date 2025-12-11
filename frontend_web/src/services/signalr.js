@@ -38,6 +38,17 @@ export const onCartUpdated = (callback) => {
   }
 }
 
+export const joinScannerGroup = async (deviceId) => {
+  if (connection && deviceId) {
+    try {
+      await connection.invoke('JoinScannerGroup', deviceId)
+      console.log('Joined scanner group', deviceId)
+    } catch (err) {
+      console.error('Failed to join scanner group', deviceId, err)
+    }
+  }
+}
+
 export const closeSignalR = () => {
   if (connection) {
     connection.stop()
@@ -47,5 +58,6 @@ export const closeSignalR = () => {
 export default {
   initSignalR,
   onCartUpdated,
+   joinScannerGroup,
   closeSignalR
 }

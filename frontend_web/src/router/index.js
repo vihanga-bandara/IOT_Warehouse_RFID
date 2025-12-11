@@ -56,6 +56,12 @@ const routes = [
     name: 'UserDetail',
     component: () => import('../views/AdminUserDetail.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/scanners',
+    name: 'Scanners',
+    component: () => import('../views/AdminScanners.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 
@@ -79,6 +85,10 @@ router.beforeEach((to, from, next) => {
   else if (to.meta.requiresAdmin && authStore.user?.role !== 'Admin') {
     console.log('Blocking access to admin route, redirecting to kiosk')
     next('/kiosk')
+  }
+  // Admins must select a scanner before accessing kiosk routes
+  else if ((to.path === '/kiosk' || to.path === '/kiosk/history') && authStore.user?.role === 'Admin' && !authStore.scannerDeviceId) {
+    next('/admin/scanners')
   } 
   // Redirect logged-in users away from login page
   else if (to.path === '/login' && authStore.isAuthenticated) {
