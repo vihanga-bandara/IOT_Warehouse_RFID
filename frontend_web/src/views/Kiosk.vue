@@ -14,14 +14,25 @@
             Ready for scanning
           </p>
         </div>
-        <button @click="handleLogout" class="logout-btn" title="Logout">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          Logout
-        </button>
+        <div class="header-actions">
+          <button v-if="authStore.user?.role === 'Admin'" @click="goToAdmin" class="admin-btn" title="Back to Admin">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Admin
+          </button>
+          <button @click="handleLogout" class="logout-btn" title="Logout">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Logout
+          </button>
+        </div>
       </div>
 
       <div class="cart-display surface-card surface-card--padded">
@@ -132,6 +143,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useCartStore } from '../stores/cartStore'
+import { useTheme } from '../composables/useTheme'
 import api from '../services/api'
 import { initSignalR, onCartUpdated, closeSignalR } from '../services/signalr'
 
@@ -141,12 +153,17 @@ export default {
     const router = useRouter()
     const authStore = useAuthStore()
     const cartStore = useCartStore()
+    const { isDark, toggleTheme } = useTheme()
     const message = ref(null)
     const processing = ref(false)
 
     const handleLogout = () => {
       authStore.logout()
       router.push('/login')
+    }
+
+    const goToAdmin = () => {
+      router.push('/dashboard')
     }
 
     const removeFromCart = async (itemId) => {
@@ -197,6 +214,10 @@ export default {
     }
 
     onMounted(async () => {
+      // Force light mode
+      if (isDark.value) {
+        toggleTheme()
+      }
       try {
         const token = localStorage.getItem('authToken')
         await initSignalR(token)
@@ -213,10 +234,12 @@ export default {
     })
 
     return {
+      authStore,
       cartStore,
       message,
       processing,
       handleLogout,
+      goToAdmin,
       removeFromCart,
       clearCart,
       commitTransaction
@@ -291,6 +314,30 @@ export default {
   margin: 0;
   font-weight: 600;
   font-size: 1rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.admin-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--primary-light);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
 }
 
 .logout-btn {
