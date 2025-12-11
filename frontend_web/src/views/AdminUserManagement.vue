@@ -851,6 +851,15 @@ export default {
   background: rgba(255, 255, 255, 0.9);
 }
 
+[data-theme="dark"] .role-option {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .role-name {
+  color: #f1f5f9;
+}
+
 .role-option input {
   margin-top: 0.2rem;
 }

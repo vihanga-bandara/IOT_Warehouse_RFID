@@ -779,6 +779,10 @@ export default {
   color: var(--primary-dark);
 }
 
+[data-theme="dark"] .account-name {
+  color: #f1f5f9;
+}
+
 .account-email {
   font-size: 0.9rem;
   color: var(--accent-gray);
@@ -800,6 +804,10 @@ export default {
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--primary-dark);
+}
+
+[data-theme="dark"] .password-form h3 {
+  color: #f1f5f9;
 }
 
 .form-group {
@@ -836,6 +844,17 @@ export default {
   border-color: var(--primary-light);
   background: #fafbfc;
   box-shadow: 0 0 0 4px rgba(30, 144, 255, 0.1);
+}
+
+[data-theme="dark"] .form-input {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .form-input:focus {
+  background: #0f172a;
+  border-color: var(--primary-light);
 }
 
 .password-actions {
