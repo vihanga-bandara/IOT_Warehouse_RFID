@@ -48,6 +48,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<ICheckoutSessionManager, CheckoutSessionManager>();
+builder.Services.AddSingleton<IScannerSessionService, ScannerSessionService>();
 
 // Register background services
 builder.Services.AddHostedService<IoTHubListenerService>();

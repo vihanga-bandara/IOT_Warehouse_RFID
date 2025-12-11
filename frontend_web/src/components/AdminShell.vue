@@ -101,6 +101,12 @@
             </svg>
             Users
           </router-link>
+          <router-link to="/admin/scanners" class="nav-link" :class="{ active: activeTab === 'scanners' }">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="16" rx="2" ry="2"/><path d="M7 8h10"/><path d="M7 12h6"/>
+            </svg>
+            Scanners
+          </router-link>
         </div>
       </nav>
     </header>
@@ -342,7 +348,11 @@ export default {
     }
 
     const goToKiosk = () => {
-      router.push('/kiosk')
+      if (authStore.user?.role === 'Admin' && !authStore.scannerDeviceId) {
+        router.push('/admin/scanner-setup')
+      } else {
+        router.push('/kiosk')
+      }
     }
 
     return {

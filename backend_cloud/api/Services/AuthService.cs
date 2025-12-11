@@ -20,15 +20,18 @@ public class AuthService : IAuthService
     private readonly WarehouseDbContext _context;
     private readonly ITokenService _tokenService;
     private readonly ILogger<AuthService> _logger;
+    private readonly IScannerSessionService _scannerSessionService;
 
     public AuthService(
         WarehouseDbContext context,
         ITokenService tokenService,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        IScannerSessionService scannerSessionService)
     {
         _context = context;
         _tokenService = tokenService;
         _logger = logger;
+        _scannerSessionService = scannerSessionService;
     }
 
     public async Task<AuthResponseDto?> LoginAsync(LoginDto loginDto)
@@ -53,6 +56,45 @@ public class AuthService : IAuthService
 
             var token = _tokenService.GenerateToken(user);
 
+            var roleIds = user.UserRights.Select(ur => ur.RoleId).ToList();
+            var isAdmin = roleIds.Contains(1);
+
+            string? scannerDeviceId = null;
+            string? scannerName = null;
+
+            // For non-admin users, scanner name is required because they go directly to kiosk
+            if (!isAdmin)
+            {
+                if (string.IsNullOrWhiteSpace(loginDto.ScannerName))
+                {
+                    _logger.LogWarning("Login failed for user {Email}: scanner name is required for non-admin users", loginDto.Email);
+                    return null;
+                }
+
+                var binding = await _scannerSessionService.BindUserToScannerAsync(user.UserId, loginDto.ScannerName);
+                if (binding == null)
+                {
+                    _logger.LogWarning("Login failed for user {Email}: scanner not found for name {ScannerName}", loginDto.Email, loginDto.ScannerName);
+                    return null;
+                }
+
+                scannerDeviceId = binding.Value.DeviceId;
+                scannerName = binding.Value.Name;
+            }
+            else
+            {
+                // Admins can log in without scanner; they will choose scanner later
+                if (!string.IsNullOrWhiteSpace(loginDto.ScannerName))
+                {
+                    var binding = await _scannerSessionService.BindUserToScannerAsync(user.UserId, loginDto.ScannerName);
+                    if (binding != null)
+                    {
+                        scannerDeviceId = binding.Value.DeviceId;
+                        scannerName = binding.Value.Name;
+                    }
+                }
+            }
+
             return new AuthResponseDto
             {
                 Token = token,
@@ -60,7 +102,9 @@ public class AuthService : IAuthService
                 Name = user.Name,
                 Lastname = user.Lastname,
                 UserId = user.UserId,
-                RoleIds = user.UserRights.Select(ur => ur.RoleId).ToList()
+                RoleIds = roleIds,
+                ScannerDeviceId = scannerDeviceId,
+                ScannerName = scannerName
             };
         }
         catch (Exception ex)

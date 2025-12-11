@@ -41,4 +41,18 @@ public class KioskHub : Hub
     {
         await Clients.Caller.SendAsync("Pong");
     }
+
+    // Browser session joins a scanner-specific group so it can receive
+    // cart updates for the bound physical scanner device.
+    public async Task JoinScannerGroup(string deviceId)
+    {
+        var userId = Context.User?.FindFirst("UserId")?.Value;
+        if (string.IsNullOrWhiteSpace(deviceId) || string.IsNullOrWhiteSpace(userId))
+        {
+            return;
+        }
+
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"scanner_{deviceId}");
+        _logger.LogInformation("User {UserId} joined scanner group {DeviceId}", userId, deviceId);
+    }
 }

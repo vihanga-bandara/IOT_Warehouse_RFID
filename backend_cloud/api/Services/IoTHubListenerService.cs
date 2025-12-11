@@ -1,3 +1,4 @@
+using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,7 @@ public class IoTHubListenerService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly IHubContext<KioskHub> _hubContext;
     private readonly ICheckoutSessionManager _sessionManager;
+    private readonly IScannerSessionService _scannerSessionService;
     private readonly ILogger<IoTHubListenerService> _logger;
     private readonly IConfiguration _configuration;
     private EventHubConsumerClient? _consumerClient;
@@ -23,12 +25,14 @@ public class IoTHubListenerService : BackgroundService
         IServiceProvider serviceProvider,
         IHubContext<KioskHub> hubContext,
         ICheckoutSessionManager sessionManager,
+        IScannerSessionService scannerSessionService,
         ILogger<IoTHubListenerService> logger,
         IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
         _hubContext = hubContext;
         _sessionManager = sessionManager;
+        _scannerSessionService = scannerSessionService;
         _logger = logger;
         _configuration = configuration;
     }
@@ -53,6 +57,11 @@ public class IoTHubListenerService : BackgroundService
 
             await foreach (var partitionEvent in _consumerClient.ReadEventsAsync(stoppingToken))
             {
+                if (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 if (partitionEvent.Data == null) continue;
 
                 try
@@ -70,6 +79,10 @@ public class IoTHubListenerService : BackgroundService
                     _logger.LogError(ex, "Error processing IoT Hub message");
                 }
             }
+        }
+        catch (EventHubsException ex) when (ex.Reason == EventHubsException.FailureReason.ClientClosed && stoppingToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("IoT Hub Listener Service stopped because the Event Hubs client was closed.");
         }
         catch (Exception ex)
         {
@@ -105,47 +118,27 @@ public class IoTHubListenerService : BackgroundService
                 return;
             }
 
+            // Determine which user is currently bound to this scanner
+            var activeUserId = await _scannerSessionService.GetActiveUserForScannerAsync(scanData.DeviceId);
+
+            if (!activeUserId.HasValue)
+            {
+                _logger.LogInformation("RFID scan ignored because no active user is bound to scanner {DeviceId}", scanData.DeviceId);
+                return;
+            }
+
+            var userId = activeUserId.Value;
+
             // Determine action based on item status
             string action;
-            int? targetUserId = null;
 
             if (item.Status == ItemStatus.Available)
             {
                 action = "Borrow";
-                // In real scenario, we'd need to know which user is at the kiosk
-                // For now, we'll just log this - the frontend will need to handle user context
-                _logger.LogInformation("Item {ItemName} scanned for borrowing", item.ItemName);
             }
             else if (item.Status == ItemStatus.Borrowed)
             {
                 action = "Return";
-                targetUserId = item.CurrentHolderId;
-                
-                if (targetUserId.HasValue)
-                {
-                    // Check if item is already in cart (debounce)
-                    if (!_sessionManager.IsItemInCart(targetUserId.Value, item.ItemId))
-                    {
-                        var cartItem = new CartItemDto
-                        {
-                            ItemId = item.ItemId,
-                            RfidUid = item.RfidUid,
-                            ItemName = item.ItemName,
-                            Action = action,
-                            ScannedAt = DateTime.UtcNow
-                        };
-
-                        // Add to session
-                        if (_sessionManager.AddItemToCart(targetUserId.Value, cartItem))
-                        {
-                            // Push update via SignalR
-                            await _hubContext.Clients.Group($"user_{targetUserId.Value}")
-                                .SendAsync("CartUpdated", cartItem);
-
-                            _logger.LogInformation("Item {ItemName} added to cart for user {UserId}", item.ItemName, targetUserId.Value);
-                        }
-                    }
-                }
             }
             else
             {
@@ -153,8 +146,33 @@ public class IoTHubListenerService : BackgroundService
                 return;
             }
 
-            // For "Borrow" action, we need active user context from frontend
-            // The frontend should establish this when user logs in at kiosk
+            // Debounce: avoid duplicates in the server-side cart
+            if (_sessionManager.IsItemInCart(userId, item.ItemId))
+            {
+                _logger.LogInformation("Item {ItemId} already in cart for user {UserId}, ignoring duplicate scan", item.ItemId, userId);
+                return;
+            }
+
+            var cartItem = new CartItemDto
+            {
+                ItemId = item.ItemId,
+                RfidUid = item.RfidUid,
+                ItemName = item.ItemName,
+                Action = action,
+                ScannedAt = DateTime.UtcNow
+            };
+
+            if (_sessionManager.AddItemToCart(userId, cartItem))
+            {
+                var cart = _sessionManager.GetUserCart(userId);
+
+                await _hubContext.Clients.Group($"scanner_{scanData.DeviceId}")
+                    .SendAsync("CartUpdated", cart);
+
+                _logger.LogInformation("Item {ItemName} added to cart for user {UserId} via scanner {DeviceId}",
+                    item.ItemName, userId, scanData.DeviceId);
+            }
+
             _logger.LogInformation("RFID scan processed: Item={ItemName}, Action={Action}, Device={DeviceId}",
                 item.ItemName, action, scanData.DeviceId);
         }
@@ -170,7 +188,14 @@ public class IoTHubListenerService : BackgroundService
         
         if (_consumerClient != null)
         {
-            await _consumerClient.CloseAsync(stoppingToken);
+            try
+            {
+                await _consumerClient.CloseAsync(stoppingToken);
+            }
+            catch (EventHubsException ex) when (ex.Reason == EventHubsException.FailureReason.ClientClosed)
+            {
+                _logger.LogDebug("Event Hubs consumer client was already closed.");
+            }
         }
 
         await base.StopAsync(stoppingToken);
