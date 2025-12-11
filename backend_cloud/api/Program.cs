@@ -40,6 +40,24 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
         ClockSkew = TimeSpan.Zero
     };
+
+    // Allow JWTs to be passed via the `access_token` query string
+    // for WebSocket connections to SignalR hubs (e.g. /hubs/kiosk).
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"]; 
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddAuthorization();
@@ -80,8 +98,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.UseHttpsRedirection();
+// In development, we serve HTTP directly on http://localhost:5218 so that
+// WebSocket connections (e.g. SignalR) from the frontend can connect using ws://.
+// Enforce HTTPS redirection only outside of development.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Serve static files from wwwroot (for Vue.js frontend)
 app.UseStaticFiles();

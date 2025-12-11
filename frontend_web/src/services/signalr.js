@@ -1,6 +1,7 @@
 import * as SignalR from '@microsoft/signalr'
 
 let connection = null
+let reconnectTimeoutId = null
 
 const getHubUrl = () => {
   // Derive the hub base from the API URL so it works in dev and prod
@@ -12,6 +13,11 @@ const getHubUrl = () => {
 }
 
 export const initSignalR = async (token) => {
+  if (connection) {
+    // If there's an existing connection, don't create another one.
+    return
+  }
+
   const hubUrl = getHubUrl()
 
   connection = new SignalR.HubConnectionBuilder()
@@ -28,7 +34,9 @@ export const initSignalR = async (token) => {
     console.log('SignalR connected to', hubUrl)
   } catch (err) {
     console.error('SignalR connection failed:', err)
-    setTimeout(() => initSignalR(token), 5000)
+    // Let withAutomaticReconnect handle retries while the kiosk is mounted.
+    // We avoid our own manual retry loop so that navigating away/logging out
+    // and calling closeSignalR() actually stops connection attempts.
   }
 }
 
@@ -51,7 +59,13 @@ export const joinScannerGroup = async (deviceId) => {
 
 export const closeSignalR = () => {
   if (connection) {
+    if (reconnectTimeoutId) {
+      clearTimeout(reconnectTimeoutId)
+      reconnectTimeoutId = null
+    }
+
     connection.stop()
+    connection = null
   }
 }
 
