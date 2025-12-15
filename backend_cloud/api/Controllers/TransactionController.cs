@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using RfidWarehouseApi.Constants;
 using RfidWarehouseApi.Data;
 using RfidWarehouseApi.DTOs;
+using RfidWarehouseApi.Extensions;
 using RfidWarehouseApi.Hubs;
 using RfidWarehouseApi.Models;
 using RfidWarehouseApi.Services;
@@ -35,8 +37,7 @@ public class TransactionController : ControllerBase
     [HttpPost("commit")]
     public async Task<IActionResult> CommitTransaction([FromBody] CommitTransactionDto dto)
     {
-        var userIdClaim = User.FindFirst("UserId")?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        if (!User.TryGetUserId(out var userId))
         {
             return Unauthorized();
         }
@@ -180,8 +181,7 @@ public class TransactionController : ControllerBase
     [HttpGet("history")]
     public async Task<IActionResult> GetUserHistory()
     {
-        var userIdClaim = User.FindFirst("UserId")?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        if (!User.TryGetUserId(out var userId))
         {
             return Unauthorized();
         }
@@ -208,7 +208,7 @@ public class TransactionController : ControllerBase
     }
 
     [HttpGet("all")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> GetAllTransactions([FromQuery] int? page = 1, [FromQuery] int? pageSize = 50)
     {
         var query = _context.Transactions

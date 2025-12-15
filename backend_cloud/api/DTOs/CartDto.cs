@@ -5,7 +5,7 @@ public class CartItemDto
     public int ItemId { get; set; }
     public string RfidUid { get; set; } = string.Empty;
     public string ItemName { get; set; } = string.Empty;
-    public string Action { get; set; } = string.Empty; // "Borrow" or "Return"
+    public string Action { get; set; } = string.Empty;
     public DateTime ScannedAt { get; set; }
 }
 

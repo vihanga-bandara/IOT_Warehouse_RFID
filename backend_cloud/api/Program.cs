@@ -11,6 +11,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
 builder.Services.AddControllers();
 
+var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+var appInsightsInstrumentationKey = builder.Configuration["APPINSIGHTS_INSTRUMENTATIONKEY"];
+if (!string.IsNullOrWhiteSpace(appInsightsConnectionString) || !string.IsNullOrWhiteSpace(appInsightsInstrumentationKey))
+{
+    builder.Services.AddApplicationInsightsTelemetry();
+}
+
 // Configure Database
 builder.Services.AddDbContext<WarehouseDbContext>(options =>
     options.UseSqlServer(

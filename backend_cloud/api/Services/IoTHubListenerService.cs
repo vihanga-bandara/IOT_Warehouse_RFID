@@ -3,6 +3,7 @@ using Azure.Messaging.EventHubs.Consumer;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using RfidWarehouseApi.Constants;
 using RfidWarehouseApi.Data;
 using RfidWarehouseApi.DTOs;
 using RfidWarehouseApi.Hubs;
@@ -47,7 +48,15 @@ public class IoTHubListenerService : BackgroundService
         _logger.LogInformation("IoT Hub Listener Service starting...");
 
         var connectionString = _configuration["IoTHub:EventHubConnectionString"];
-        var consumerGroup = _configuration["IoTHub:ConsumerGroup"] ?? "$Default";
+        var consumerGroup = _configuration["IoTHub:ConsumerGroup"] ?? IoTHubConstants.DefaultConsumerGroup;
+
+        if (string.Equals(consumerGroup, IoTHubConstants.DefaultConsumerGroup, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning(
+                "IoT listener is using consumer group '$Default'. If you have VS Code IoT Hub monitoring or 'az iot hub monitor-events' running, " +
+                "they may also use '$Default' and prevent this app from receiving events. Consider creating a dedicated consumer group (e.g. 'rfid-api') " +
+                "and set IoTHub:ConsumerGroup accordingly.");
+        }
 
         if (string.Equals(consumerGroup, "$Default", StringComparison.OrdinalIgnoreCase))
         {
@@ -238,7 +247,6 @@ public class IoTHubListenerService : BackgroundService
                 return;
             }
 
-            // Get scanner info
             var scanner = await context.Scanners
                 .FirstOrDefaultAsync(s => s.DeviceId == deviceId);
 
@@ -259,16 +267,15 @@ public class IoTHubListenerService : BackgroundService
 
             var userId = activeUserId.Value;
 
-            // Determine action based on item status
             string action;
 
             if (item.Status == ItemStatus.Available)
             {
-                action = "Borrow";
+                action = CartActions.Borrow;
             }
             else if (item.Status == ItemStatus.Borrowed)
             {
-                action = "Return";
+                action = CartActions.Return;
             }
             else
             {
