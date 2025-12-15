@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RfidWarehouseApi.Constants;
 using RfidWarehouseApi.Data;
 using RfidWarehouseApi.DTOs;
+using RfidWarehouseApi.Extensions;
 using RfidWarehouseApi.Hubs;
 using RfidWarehouseApi.Models;
 using RfidWarehouseApi.Services;
