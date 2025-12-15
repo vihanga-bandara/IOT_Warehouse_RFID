@@ -2,8 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using RfidWarehouseApi.Data;
+using RfidWarehouseApi.DTOs;
+using RfidWarehouseApi.Hubs;
 using RfidWarehouseApi.Models;
 using RfidWarehouseApi.Services;
+using Microsoft.AspNetCore.SignalR;
 
 namespace RfidWarehouseApi.Controllers;
 
@@ -14,15 +17,18 @@ public class TransactionController : ControllerBase
 {
     private readonly WarehouseDbContext _context;
     private readonly ICheckoutSessionManager _sessionManager;
+    private readonly IHubContext<KioskHub> _hubContext;
     private readonly ILogger<TransactionController> _logger;
 
     public TransactionController(
         WarehouseDbContext context,
         ICheckoutSessionManager sessionManager,
+        IHubContext<KioskHub> hubContext,
         ILogger<TransactionController> logger)
     {
         _context = context;
         _sessionManager = sessionManager;
+        _hubContext = hubContext;
         _logger = logger;
     }
 
@@ -41,98 +47,134 @@ public class TransactionController : ControllerBase
             return BadRequest(new { message = "Cart is empty" });
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        try
+        var executionStrategy = _context.Database.CreateExecutionStrategy();
+        IActionResult? actionResult = null;
+        string? scannerDeviceId = null;
+        object? responseBody = null;
+        int transactionCount = 0;
+
+        await executionStrategy.ExecuteAsync(async () =>
         {
-            var scanner = await _context.Scanners
-                .FirstOrDefaultAsync(s => s.DeviceId == dto.DeviceId);
-
-            if (scanner == null)
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                return BadRequest(new { message = "Invalid scanner device" });
-            }
+                var scanner = await _context.Scanners
+                    .FirstOrDefaultAsync(s => s.DeviceId == dto.DeviceId);
 
-            var transactions = new List<Transaction>();
-
-            foreach (var cartItem in cart.Items)
-            {
-                // Re-verify item status (concurrency check)
-                var item = await _context.Items.FindAsync(cartItem.ItemId);
-                if (item == null)
+                if (scanner == null)
                 {
-                    await transaction.RollbackAsync();
-                    return BadRequest(new { message = $"Item {cartItem.ItemName} not found" });
+                    actionResult = BadRequest(new { message = "Invalid scanner device" });
+                    return;
                 }
 
-                // Validate action is still valid
-                if (cartItem.Action == "Borrow" && item.Status != ItemStatus.Available)
+                var transactions = new List<Transaction>();
+
+                foreach (var cartItem in cart.Items)
                 {
-                    await transaction.RollbackAsync();
-                    return BadRequest(new { message = $"Item {cartItem.ItemName} is no longer available" });
+                    // Re-verify item status (concurrency check)
+                    var item = await _context.Items.FindAsync(cartItem.ItemId);
+                    if (item == null)
+                    {
+                        actionResult = BadRequest(new { message = $"Item {cartItem.ItemName} not found" });
+                        return;
+                    }
+
+                    // Validate action is still valid
+                    if (cartItem.Action == "Borrow" && item.Status != ItemStatus.Available)
+                    {
+                        actionResult = BadRequest(new { message = $"Item {cartItem.ItemName} is no longer available" });
+                        return;
+                    }
+
+                    if (cartItem.Action == "Return" &&
+                        (item.Status != ItemStatus.Borrowed || item.CurrentHolderId != userId))
+                    {
+                        actionResult = BadRequest(new { message = $"You cannot return item {cartItem.ItemName}" });
+                        return;
+                    }
+
+                    // Update item status
+                    if (cartItem.Action == "Borrow")
+                    {
+                        item.Status = ItemStatus.Borrowed;
+                        item.CurrentHolderId = userId;
+                    }
+                    else if (cartItem.Action == "Return")
+                    {
+                        item.Status = ItemStatus.Available;
+                        item.CurrentHolderId = null;
+                    }
+
+                    item.LastUpdated = DateTime.UtcNow;
+
+                    // Create transaction record
+                    var txn = new Transaction
+                    {
+                        UserId = userId,
+                        ItemId = item.ItemId,
+                        DeviceId = scanner.DeviceId,
+                        Action = cartItem.Action == "Borrow" ? TransactionAction.Checkout : TransactionAction.Checkin,
+                        Timestamp = DateTime.UtcNow,
+                        Notes = dto.Notes
+                    };
+
+                    transactions.Add(txn);
+                    _context.Transactions.Add(txn);
                 }
 
-                if (cartItem.Action == "Return" && 
-                    (item.Status != ItemStatus.Borrowed || item.CurrentHolderId != userId))
-                {
-                    await transaction.RollbackAsync();
-                    return BadRequest(new { message = $"You cannot return item {cartItem.ItemName}" });
-                }
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
 
-                // Update item status
-                if (cartItem.Action == "Borrow")
+                scannerDeviceId = scanner.DeviceId;
+                transactionCount = transactions.Count;
+                responseBody = new
                 {
-                    item.Status = ItemStatus.Borrowed;
-                    item.CurrentHolderId = userId;
-                }
-                else if (cartItem.Action == "Return")
-                {
-                    item.Status = ItemStatus.Available;
-                    item.CurrentHolderId = null;
-                }
-
-                item.LastUpdated = DateTime.UtcNow;
-
-                // Create transaction record
-                var txn = new Transaction
-                {
-                    UserId = userId,
-                    ItemId = item.ItemId,
-                    DeviceId = scanner.DeviceId,
-                    Action = cartItem.Action == "Borrow" ? TransactionAction.Checkout : TransactionAction.Checkin,
-                    Timestamp = DateTime.UtcNow,
-                    Notes = dto.Notes
+                    message = "Transaction completed successfully",
+                    transactionCount = transactions.Count,
+                    transactions = transactions.Select(t => new
+                    {
+                        t.TransactionId,
+                        Action = t.Action.ToString(),
+                        t.Timestamp
+                    })
                 };
 
-                transactions.Add(txn);
-                _context.Transactions.Add(txn);
+                actionResult = Ok(responseBody);
             }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error committing transaction for user {UserId}", userId);
+                actionResult = StatusCode(500, new { message = "An error occurred while processing the transaction" });
+            }
+        });
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
+        if (actionResult is OkObjectResult && scannerDeviceId != null)
+        {
             // Clear the cart
             _sessionManager.ClearUserCart(userId);
 
-            _logger.LogInformation("Transaction committed for user {UserId}. {Count} items processed", userId, transactions.Count);
-
-            return Ok(new
+            // Keep the kiosk UI in sync: broadcast an empty cart to this scanner group
+            // (useful when the cart was populated via IoT listener and/or multiple clients).
+            try
             {
-                message = "Transaction completed successfully",
-                transactionCount = transactions.Count,
-                transactions = transactions.Select(t => new
-                {
-                    t.TransactionId,
-                    Action = t.Action.ToString(),
-                    t.Timestamp
-                })
-            });
+                await _hubContext.Clients.Group($"scanner_{scannerDeviceId}")
+                    .SendAsync("CartUpdated", new SessionCartDto
+                    {
+                        UserId = userId,
+                        SessionStarted = DateTime.UtcNow,
+                        Items = new List<CartItemDto>()
+                    });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Transaction committed but failed to broadcast cart update for scanner {DeviceId}", scannerDeviceId);
+            }
+
+            _logger.LogInformation("Transaction committed for user {UserId}. {Count} items processed", userId, transactionCount);
         }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync();
-            _logger.LogError(ex, "Error committing transaction for user {UserId}", userId);
-            return StatusCode(500, new { message = "An error occurred while processing the transaction" });
-        }
+
+        return actionResult ?? StatusCode(500, new { message = "An error occurred while processing the transaction" });
     }
 
     [HttpGet("history")]

@@ -42,6 +42,7 @@ resource iotHub 'Microsoft.Devices/IotHubs@2023-06-30' = {
     type: 'SystemAssigned'
   }
   properties: {
+    minTlsVersion: '1.2'
     eventHubEndpoints: {
       events: {
         retentionTimeInDays: 1

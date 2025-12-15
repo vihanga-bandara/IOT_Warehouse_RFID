@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="kiosk-page">
     <div class="kiosk-container surface-card surface-card--padded">
       <div class="kiosk-header">
@@ -65,9 +65,13 @@
             <div class="items-list">
               <div v-for="item in cartStore.borrowItems" :key="item.id" class="cart-item borrow">
                 <span class="item-name">{{ item.name }}</span>
-                <button @click="removeFromCart(item.id)" class="remove-btn" title="Remove item">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                <button @click="removeFromCart(item.id)" class="remove-btn" title="Remove item" aria-label="Remove item">
+                  <svg class="remove-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                   </svg>
                 </button>
               </div>
@@ -85,9 +89,13 @@
             <div class="items-list">
               <div v-for="item in cartStore.returnItems" :key="item.id" class="cart-item return">
                 <span class="item-name">{{ item.name }}</span>
-                <button @click="removeFromCart(item.id)" class="remove-btn" title="Remove item">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                <button @click="removeFromCart(item.id)" class="remove-btn" title="Remove item" aria-label="Remove item">
+                  <svg class="remove-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                   </svg>
                 </button>
               </div>
@@ -160,8 +168,10 @@ export default {
     const { isDark, toggleTheme } = useTheme()
     const message = ref(null)
     const processing = ref(false)
+    let sessionRefreshInProgress = false
 
     const handleLogout = () => {
+      cartStore.clear()
       authStore.logout()
       router.push('/login')
     }
@@ -195,6 +205,21 @@ export default {
         setTimeout(() => {
           message.value = null
         }, 3000)
+      }
+    }
+
+    const refreshSessionCart = async () => {
+      if (sessionRefreshInProgress) {
+        return
+      }
+      sessionRefreshInProgress = true
+      try {
+        const response = await api.get('/session/current')
+        cartStore.updateFromServer(response.data)
+      } catch (err) {
+        console.error('Unable to refresh session cart', err)
+      } finally {
+        sessionRefreshInProgress = false
       }
     }
 
@@ -234,6 +259,7 @@ export default {
         onCartUpdated((updatedCart) => {
           cartStore.updateFromServer(updatedCart)
         })
+        await refreshSessionCart()
       } catch (err) {
         console.error('SignalR initialization failed:', err)
       }
@@ -415,8 +441,9 @@ export default {
 
 .cart-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  gap: 0.75rem;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
   border-bottom: 2px solid var(--border-color);
@@ -430,12 +457,13 @@ export default {
 }
 
 .item-badge {
-  background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-green) 100%);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
+  background: var(--bg-secondary);
+  color: var(--accent-gray);
+  border: 1px solid var(--border-color);
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .empty-cart {
@@ -525,12 +553,10 @@ export default {
 
 .cart-item.borrow {
   border-left-color: var(--accent-green);
-  background: linear-gradient(135deg, rgba(80, 200, 120, 0.08) 0%, rgba(80, 200, 120, 0.04) 100%);
 }
 
 .cart-item.return {
   border-left-color: var(--color-warning);
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.08) 0%, rgba(255, 193, 7, 0.04) 100%);
 }
 
 .cart-item:hover {
@@ -550,50 +576,35 @@ export default {
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: var(--color-error);
-  color: white;
-  border: none;
-  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--accent-gray);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
   cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
   flex-shrink: 0;
+  box-shadow: none;
 }
 
 .remove-btn:hover {
-  background: var(--error-color);
-  transform: scale(1.05);
+  background: var(--border-color);
+  color: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 .remove-btn:active {
-  transform: scale(0.95);
+  transform: translateY(0);
 }
 
-@media (max-width: 600px) {
-  .kiosk-container {
-    padding: 1.5rem;
-  }
+.remove-btn:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 2px;
+}
 
-  .kiosk-header h1 {
-    font-size: 1.4rem;
-  }
-
-  .cart-display {
-    min-height: 250px;
-  }
-
-  .cart-items {
-    max-height: 350px;
-  }
-
-  .item-name {
-    font-size: 0.95rem;
-  }
-
-  .remove-btn {
-    width: 36px;
-    height: 36px;
-  }
+.remove-icon {
+  display: block;
+  flex-shrink: 0;
 }
 
 .action-buttons {
@@ -755,3 +766,4 @@ export default {
   transform: translateY(-20px);
 }
 </style>
+
