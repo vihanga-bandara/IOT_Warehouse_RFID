@@ -34,8 +34,13 @@ public class ScannerSessionService : IScannerSessionService
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<WarehouseDbContext>();
 
-        var scanner = await context.Scanners
-            .FirstOrDefaultAsync(s => s.Name != null && s.Name.ToLower() == scannerName.ToLower());
+        var normalized = scannerName.Trim().ToLower();
+
+        // Allow binding by either human-friendly Name (typical) or DeviceId (useful for ops/testing)
+        // so the kiosk can be bound using the same identifier as the IoT Hub device.
+        var scanner = await context.Scanners.FirstOrDefaultAsync(s =>
+            (s.Name != null && s.Name.ToLower() == normalized) ||
+            s.DeviceId.ToLower() == normalized);
 
         if (scanner == null)
         {

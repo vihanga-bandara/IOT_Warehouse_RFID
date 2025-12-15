@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '../services/api'
+import { useCartStore } from './cartStore'
 
 export const useAuthStore = defineStore('auth', () => {
   const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
@@ -71,6 +72,16 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const logout = () => {
+    // Best-effort: clear backend session cart before dropping auth.
+    // (If this fails, we still proceed with client logout.)
+    const currentToken = token.value || localStorage.getItem('authToken')
+    if (currentToken) {
+      api.post('/session/clear', null, {
+        headers: { Authorization: `Bearer ${currentToken}` }
+      }).catch(() => {})
+    }
+
+    useCartStore().clear()
     user.value = null
     token.value = null
     scannerDeviceId.value = null
