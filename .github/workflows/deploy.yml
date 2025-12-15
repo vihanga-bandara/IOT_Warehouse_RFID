@@ -122,24 +122,8 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Get App Service Name
-        id: get-app-name
-        uses: azure/cli@v1
-        with:
-          inlineScript: |
-            APP_NAME=$(az deployment group show \
-              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
-              --name main \
-              --query properties.outputs.appServiceName.value \
-              --output tsv)
-            if [ -z "$APP_NAME" ]; then
-              echo 'Infra output appServiceName was empty. Ensure deploy-infra workflow ran successfully.'
-              exit 1
-            fi
-            echo "app-name=$APP_NAME" >> $GITHUB_OUTPUT
-
       - name: Deploy to App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ steps.get-app-name.outputs.app-name }}
+          app-name: rfid-warehouse-dev-app-26phf7ltazvva
           package: ${{ github.workspace }}/backend-dist
