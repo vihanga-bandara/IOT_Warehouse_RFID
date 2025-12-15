@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using RfidWarehouseApi.Constants;
 using RfidWarehouseApi.Data;
 using RfidWarehouseApi.DTOs;
-using RfidWarehouseApi.Extensions;
 using RfidWarehouseApi.Hubs;
 using RfidWarehouseApi.Models;
 using RfidWarehouseApi.Services;
@@ -81,13 +80,13 @@ public class TransactionController : ControllerBase
                     }
 
                     // Validate action is still valid
-                    if (cartItem.Action == CartActions.Borrow && item.Status != ItemStatus.Available)
+                    if (cartItem.Action == "Borrow" && item.Status != ItemStatus.Available)
                     {
                         actionResult = BadRequest(new { message = $"Item {cartItem.ItemName} is no longer available" });
                         return;
                     }
 
-                    if (cartItem.Action == CartActions.Return &&
+                    if (cartItem.Action == "Return" &&
                         (item.Status != ItemStatus.Borrowed || item.CurrentHolderId != userId))
                     {
                         actionResult = BadRequest(new { message = $"You cannot return item {cartItem.ItemName}" });
@@ -95,12 +94,12 @@ public class TransactionController : ControllerBase
                     }
 
                     // Update item status
-                    if (cartItem.Action == CartActions.Borrow)
+                    if (cartItem.Action == "Borrow")
                     {
                         item.Status = ItemStatus.Borrowed;
                         item.CurrentHolderId = userId;
                     }
-                    else if (cartItem.Action == CartActions.Return)
+                    else if (cartItem.Action == "Return")
                     {
                         item.Status = ItemStatus.Available;
                         item.CurrentHolderId = null;
@@ -114,7 +113,7 @@ public class TransactionController : ControllerBase
                         UserId = userId,
                         ItemId = item.ItemId,
                         DeviceId = scanner.DeviceId,
-                        Action = cartItem.Action == CartActions.Borrow ? TransactionAction.Checkout : TransactionAction.Checkin,
+                        Action = cartItem.Action == "Borrow" ? TransactionAction.Checkout : TransactionAction.Checkin,
                         Timestamp = DateTime.UtcNow,
                         Notes = dto.Notes
                     };
@@ -159,8 +158,8 @@ public class TransactionController : ControllerBase
             // (useful when the cart was populated via IoT listener and/or multiple clients).
             try
             {
-                await _hubContext.Clients.Group(HubGroups.Scanner(scannerDeviceId))
-                    .SendAsync(HubEvents.CartUpdated, new SessionCartDto
+                await _hubContext.Clients.Group($"scanner_{scannerDeviceId}")
+                    .SendAsync("CartUpdated", new SessionCartDto
                     {
                         UserId = userId,
                         SessionStarted = DateTime.UtcNow,

@@ -58,6 +58,14 @@ public class IoTHubListenerService : BackgroundService
                 "and set IoTHub:ConsumerGroup accordingly.");
         }
 
+        if (string.Equals(consumerGroup, "$Default", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning(
+                "IoT listener is using consumer group '$Default'. If you have VS Code IoT Hub monitoring or 'az iot hub monitor-events' running, " +
+                "they may also use '$Default' and prevent this app from receiving events. Consider creating a dedicated consumer group (e.g. 'rfid-api') " +
+                "and set IoTHub:ConsumerGroup accordingly.");
+        }
+
         if (string.IsNullOrEmpty(connectionString))
         {
             _logger.LogWarning(
@@ -150,10 +158,11 @@ public class IoTHubListenerService : BackgroundService
                 // This prevents spoofing the deviceId in message bodies.
                 // Depending on the endpoint/tooling, the device id may appear in SystemProperties or Properties.
                 string? deviceIdFromHub = null;
+                const string deviceIdKey = "iothub-connection-device-id";
                 try
                 {
                     if (partitionEvent.Data.SystemProperties != null &&
-                        partitionEvent.Data.SystemProperties.TryGetValue(IoTHubConstants.DeviceIdSystemPropertyKey, out var deviceIdObj) &&
+                        partitionEvent.Data.SystemProperties.TryGetValue(deviceIdKey, out var deviceIdObj) &&
                         deviceIdObj != null)
                     {
                         deviceIdFromHub = deviceIdObj.ToString();
@@ -161,7 +170,7 @@ public class IoTHubListenerService : BackgroundService
 
                     if (string.IsNullOrWhiteSpace(deviceIdFromHub) &&
                         partitionEvent.Data.Properties != null &&
-                        partitionEvent.Data.Properties.TryGetValue(IoTHubConstants.DeviceIdSystemPropertyKey, out var deviceIdAppObj) &&
+                        partitionEvent.Data.Properties.TryGetValue(deviceIdKey, out var deviceIdAppObj) &&
                         deviceIdAppObj != null)
                     {
                         deviceIdFromHub = deviceIdAppObj.ToString();
@@ -171,7 +180,7 @@ public class IoTHubListenerService : BackgroundService
                     {
                         _logger.LogDebug(
                             "IoT message missing '{DeviceIdKey}' in system/app properties (Partition={PartitionId}). SystemKeys=[{SystemKeys}] AppKeys=[{AppKeys}]",
-                            IoTHubConstants.DeviceIdSystemPropertyKey,
+                            deviceIdKey,
                             partitionId,
                             partitionEvent.Data.SystemProperties != null ? string.Join(",", partitionEvent.Data.SystemProperties.Keys) : string.Empty,
                             partitionEvent.Data.Properties != null ? string.Join(",", partitionEvent.Data.Properties.Keys) : string.Empty);
@@ -247,6 +256,7 @@ public class IoTHubListenerService : BackgroundService
                 return;
             }
 
+            // Determine which user is currently bound to this scanner
             var activeUserId = await _scannerSessionService.GetActiveUserForScannerAsync(deviceId);
 
             if (!activeUserId.HasValue)
@@ -293,8 +303,8 @@ public class IoTHubListenerService : BackgroundService
             {
                 var cart = _sessionManager.GetUserCart(userId);
 
-                await _hubContext.Clients.Group(HubGroups.Scanner(deviceId))
-                    .SendAsync(HubEvents.CartUpdated, cart);
+                await _hubContext.Clients.Group($"scanner_{deviceId}")
+                    .SendAsync("CartUpdated", cart);
 
                 _logger.LogInformation("Item {ItemName} added to cart for user {UserId} via scanner {DeviceId}",
                     item.ItemName, userId, deviceId);
