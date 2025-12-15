@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using RfidWarehouseApi.Constants;
 using RfidWarehouseApi.Data;
 using RfidWarehouseApi.Models;
 
@@ -95,7 +96,7 @@ public class ItemsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> CreateItem([FromBody] CreateItemDto dto)
     {
         if (!ModelState.IsValid)
@@ -133,7 +134,7 @@ public class ItemsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> UpdateItem(int id, [FromBody] UpdateItemDto dto)
     {
         var item = await _context.Items.FindAsync(id);

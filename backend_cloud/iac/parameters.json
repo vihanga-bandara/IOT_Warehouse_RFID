@@ -16,6 +16,12 @@
     },
     "sqlAdminPassword": {
       "value": "ChangeMe@123456"
+    },
+    "jwtSecretKey": {
+      "value": "replace-with-a-long-random-secret"
+    },
+    "iotEventHubConnectionString": {
+      "value": "Endpoint=sb://your-iothub.servicebus.windows.net/;SharedAccessKeyName=service;SharedAccessKey=replace-this;EntityPath=your-iothub"
     }
   }
 }

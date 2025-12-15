@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RfidWarehouseApi.Constants;
 using RfidWarehouseApi.Data;
 using RfidWarehouseApi.DTOs;
+using RfidWarehouseApi.Extensions;
 using RfidWarehouseApi.Services;
 
 namespace RfidWarehouseApi.Controllers;
@@ -73,8 +75,7 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetCurrentUser()
     {
-        var userIdClaim = User.FindFirst("UserId")?.Value;
-        if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        if (!User.TryGetUserId(out var userId))
         {
             return Unauthorized();
         }
@@ -90,7 +91,7 @@ public class AuthController : ControllerBase
         }
 
         var roles = user.UserRights
-            .Select(ur => string.IsNullOrWhiteSpace(ur.Role.RoleName) ? (ur.RoleId == 1 ? "Admin" : "User") : ur.Role.RoleName)
+            .Select(ur => RoleNameExtensions.NormalizeRoleName(ur.Role?.RoleName, ur.RoleId))
             .Distinct()
             .ToList();
 
@@ -116,8 +117,7 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var userIdClaim = User.FindFirst("UserId")?.Value;
-        if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        if (!User.TryGetUserId(out var userId))
         {
             return Unauthorized();
         }
@@ -133,7 +133,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("roles")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> GetRoles()
     {
         var roles = await _context.Roles
@@ -149,7 +149,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("users")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> GetUsers()
     {
         var users = await _context.Users
@@ -177,7 +177,7 @@ public class AuthController : ControllerBase
             Roles = u.UserRights
                 .Select(ur => new { 
                     Id = ur.RoleId, 
-                    Name = string.IsNullOrWhiteSpace(ur.RoleName) ? (ur.RoleId == 1 ? "Admin" : "User") : ur.RoleName 
+                    Name = RoleNameExtensions.NormalizeRoleName(ur.RoleName, ur.RoleId)
                 })
                 .DistinctBy(r => r.Id)
                 .ToList(),
@@ -188,7 +188,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPut("users/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> UpdateUser(int id, [FromBody] AdminUpdateUserDto dto)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -200,7 +200,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("users/{userId}/transactions")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> GetUserTransactions(int userId)
     {
         var transactions = await _context.Transactions

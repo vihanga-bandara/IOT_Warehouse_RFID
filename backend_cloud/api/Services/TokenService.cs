@@ -2,6 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using RfidWarehouseApi.Constants;
+using RfidWarehouseApi.Extensions;
 using RfidWarehouseApi.Models;
 
 namespace RfidWarehouseApi.Services;
@@ -37,16 +39,15 @@ public class TokenService : ITokenService
             new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(ClaimTypes.Name, $"{user.Name} {user.Lastname}"),
-            new Claim("UserId", user.UserId.ToString()),
+            new Claim(CustomClaimTypes.UserId, user.UserId.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
-        // Add role claims for each role the user has
         foreach (var userRight in user.UserRights)
         {
-            var roleName = userRight.RoleId == 1 ? "Admin" : "User";
+            var roleName = RoleNameExtensions.NormalizeRoleName(userRight.Role?.RoleName, userRight.RoleId);
             claims.Add(new Claim(ClaimTypes.Role, roleName));
-            claims.Add(new Claim("RoleId", userRight.RoleId.ToString()));
+            claims.Add(new Claim(CustomClaimTypes.RoleId, userRight.RoleId.ToString()));
         }
 
         var token = new JwtSecurityToken(

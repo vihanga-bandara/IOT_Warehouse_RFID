@@ -3,6 +3,7 @@ using Azure.Messaging.EventHubs.Consumer;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using RfidWarehouseApi.Constants;
 using RfidWarehouseApi.Data;
 using RfidWarehouseApi.DTOs;
 using RfidWarehouseApi.Hubs;
@@ -47,9 +48,9 @@ public class IoTHubListenerService : BackgroundService
         _logger.LogInformation("IoT Hub Listener Service starting...");
 
         var connectionString = _configuration["IoTHub:EventHubConnectionString"];
-        var consumerGroup = _configuration["IoTHub:ConsumerGroup"] ?? "$Default";
+        var consumerGroup = _configuration["IoTHub:ConsumerGroup"] ?? IoTHubConstants.DefaultConsumerGroup;
 
-        if (string.Equals(consumerGroup, "$Default", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(consumerGroup, IoTHubConstants.DefaultConsumerGroup, StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogWarning(
                 "IoT listener is using consumer group '$Default'. If you have VS Code IoT Hub monitoring or 'az iot hub monitor-events' running, " +
@@ -149,11 +150,10 @@ public class IoTHubListenerService : BackgroundService
                 // This prevents spoofing the deviceId in message bodies.
                 // Depending on the endpoint/tooling, the device id may appear in SystemProperties or Properties.
                 string? deviceIdFromHub = null;
-                const string deviceIdKey = "iothub-connection-device-id";
                 try
                 {
                     if (partitionEvent.Data.SystemProperties != null &&
-                        partitionEvent.Data.SystemProperties.TryGetValue(deviceIdKey, out var deviceIdObj) &&
+                        partitionEvent.Data.SystemProperties.TryGetValue(IoTHubConstants.DeviceIdSystemPropertyKey, out var deviceIdObj) &&
                         deviceIdObj != null)
                     {
                         deviceIdFromHub = deviceIdObj.ToString();
@@ -161,7 +161,7 @@ public class IoTHubListenerService : BackgroundService
 
                     if (string.IsNullOrWhiteSpace(deviceIdFromHub) &&
                         partitionEvent.Data.Properties != null &&
-                        partitionEvent.Data.Properties.TryGetValue(deviceIdKey, out var deviceIdAppObj) &&
+                        partitionEvent.Data.Properties.TryGetValue(IoTHubConstants.DeviceIdSystemPropertyKey, out var deviceIdAppObj) &&
                         deviceIdAppObj != null)
                     {
                         deviceIdFromHub = deviceIdAppObj.ToString();
@@ -171,7 +171,7 @@ public class IoTHubListenerService : BackgroundService
                     {
                         _logger.LogDebug(
                             "IoT message missing '{DeviceIdKey}' in system/app properties (Partition={PartitionId}). SystemKeys=[{SystemKeys}] AppKeys=[{AppKeys}]",
-                            deviceIdKey,
+                            IoTHubConstants.DeviceIdSystemPropertyKey,
                             partitionId,
                             partitionEvent.Data.SystemProperties != null ? string.Join(",", partitionEvent.Data.SystemProperties.Keys) : string.Empty,
                             partitionEvent.Data.Properties != null ? string.Join(",", partitionEvent.Data.Properties.Keys) : string.Empty);
@@ -238,7 +238,6 @@ public class IoTHubListenerService : BackgroundService
                 return;
             }
 
-            // Get scanner info
             var scanner = await context.Scanners
                 .FirstOrDefaultAsync(s => s.DeviceId == deviceId);
 
@@ -248,7 +247,6 @@ public class IoTHubListenerService : BackgroundService
                 return;
             }
 
-            // Determine which user is currently bound to this scanner
             var activeUserId = await _scannerSessionService.GetActiveUserForScannerAsync(deviceId);
 
             if (!activeUserId.HasValue)
@@ -259,16 +257,15 @@ public class IoTHubListenerService : BackgroundService
 
             var userId = activeUserId.Value;
 
-            // Determine action based on item status
             string action;
 
             if (item.Status == ItemStatus.Available)
             {
-                action = "Borrow";
+                action = CartActions.Borrow;
             }
             else if (item.Status == ItemStatus.Borrowed)
             {
-                action = "Return";
+                action = CartActions.Return;
             }
             else
             {
@@ -296,8 +293,8 @@ public class IoTHubListenerService : BackgroundService
             {
                 var cart = _sessionManager.GetUserCart(userId);
 
-                await _hubContext.Clients.Group($"scanner_{deviceId}")
-                    .SendAsync("CartUpdated", cart);
+                await _hubContext.Clients.Group(HubGroups.Scanner(deviceId))
+                    .SendAsync(HubEvents.CartUpdated, cart);
 
                 _logger.LogInformation("Item {ItemName} added to cart for user {UserId} via scanner {DeviceId}",
                     item.ItemName, userId, deviceId);
