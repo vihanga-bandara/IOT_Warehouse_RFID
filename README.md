@@ -48,10 +48,13 @@ This repo uses GitHub Actions with Azure OIDC:
 - [deploy-infra.yml](.github/workflows/deploy-infra.yml): deploys Bicep resources
 - [deploy.yml](.github/workflows/deploy.yml): builds backend+frontend, copies the built SPA into the API `wwwroot/`, then deploys one App Service
 
+Both workflows support manual runs via `workflow_dispatch`.
+
 ### Required GitHub repository secrets
 - `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (OIDC)
 - `SQL_ADMIN_USERNAME`, `SQL_ADMIN_PASSWORD` (used during deployment)
 - `JWT_SECRET_KEY` (app setting)
+- `IOT_EVENTHUB_CONNECTION_STRING` (Event Hub-compatible endpoint connection string)
 
 For more detailed deployment notes, see [DEPLOYMENT_SETUP.md](DEPLOYMENT_SETUP.md).
 

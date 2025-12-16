@@ -27,43 +27,8 @@ env:
   IOT_EVENTHUB_CONNECTION_STRING: ${{ secrets.IOT_EVENTHUB_CONNECTION_STRING }}
 
 jobs:
-  what-if:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Az login (OIDC)
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Ensure resource group exists
-        uses: azure/cli@v1
-        with:
-          inlineScript: |
-            az group create --name "$AZURE_RESOURCE_GROUP" --location "$AZURE_LOCATION"
-
-      - name: What-if deployment
-        uses: azure/cli@v1
-        with:
-          inlineScript: |
-            az deployment group what-if \
-              --resource-group "$AZURE_RESOURCE_GROUP" \
-              --name main \
-              --template-file "$BICEP_FILE" \
-              --parameters \
-                location="$AZURE_LOCATION" \
-                sqlAdminUsername="$SQL_ADMIN_USERNAME" \
-                sqlAdminPassword="$SQL_ADMIN_PASSWORD" \
-                jwtSecretKey="$JWT_SECRET_KEY" \
-                iotEventHubConnectionString="$IOT_EVENTHUB_CONNECTION_STRING"
-
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
