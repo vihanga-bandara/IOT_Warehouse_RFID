@@ -44,8 +44,7 @@
 ## Infrastructure as Code (Bicep)
 - **Language:** Bicep
 - **Location:** backend_cloud/iac/main.bicep
-- **Azure Resources:** IoT Hub, App Service, SQL Server, SQL Database
-- **Resource Group:** rfid-warehouse-rg-no (norwayeast)
+- **Azure Resources:** IoT Hub, App Service, SQL Server, SQL Database, Application Insights
 - **Configuration:** Parameterized; emits outputs used by CI/CD
 
 ## GitHub Workflows (CI/CD)
@@ -55,10 +54,15 @@
 - **Build Frontend:** Install, Build (Vite)
 - **Deploy:** Copies frontend build into backend `wwwroot/` and deploys to a single App Service
 
+Notes:
+- Workflows support manual runs via `workflow_dispatch`.
+- App settings/connection strings are applied during infra deployment (Bicep). The app deploy workflow deploys artifacts only.
+
 ### Required GitHub secrets (current repo)
 - Azure OIDC: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
 - SQL: `SQL_ADMIN_USERNAME`, `SQL_ADMIN_PASSWORD`
 - App: `JWT_SECRET_KEY`
+- IoT: `IOT_EVENTHUB_CONNECTION_STRING` (Event Hub-compatible endpoint connection string)
 
 ## Authentication & Security
 - **JWT:** Configurable; `Jwt:SecretKey` is required
@@ -96,6 +100,13 @@
 3. GitHub Actions deploy workflow → Build and deploy app
 4. Azure App Service serves frontend and backend
 5. Backend connects to Azure SQL via `DefaultConnection`
+
+## Observability
+- **Application Insights** is provisioned by IaC and wired into the API via App Service settings.
+- Useful for confirming:
+	- API request/response traces
+	- background IoT listener startup/errors
+	- dependency calls (SQL)
 
 ## Key Technologies & Versions
 - Vue 3.5.25, Vite 7.2.7, Sass 1.95.1
