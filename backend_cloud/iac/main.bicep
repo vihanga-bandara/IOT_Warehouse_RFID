@@ -17,6 +17,11 @@ param jwtExpiryMinutes int = 480
 @secure()
 param iotEventHubConnectionString string
 param iotConsumerGroup string = 'rfid-api'
+
+// Mailtrap (email sending)
+@secure()
+param mailtrapApiToken string = ''
+param mailtrapInboxId string = '0'
 // Capture creation timestamp once (allowed in parameter default)
 param createdDate string = utcNow('u')
 
@@ -160,6 +165,14 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
           value: appInsights.properties.InstrumentationKey
+        }
+        {
+          name: 'Mailtrap__ApiToken'
+          value: mailtrapApiToken
+        }
+        {
+          name: 'Mailtrap__InboxId'
+          value: mailtrapInboxId
         }
       ]
       connectionStrings: [

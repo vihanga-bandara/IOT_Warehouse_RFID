@@ -49,6 +49,14 @@ namespace RfidWarehouseApi.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("notes");
 
+                    b.Property<bool>("ReminderEmailSent")
+                        .HasColumnType("bit")
+                        .HasColumnName("reminder_email_sent");
+
+                    b.Property<DateTime?>("ReminderEmailSentAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("reminder_email_sent_at");
+
                     b.Property<string>("RfidUid")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -73,7 +81,8 @@ namespace RfidWarehouseApi.Migrations
                         {
                             ItemId = 1,
                             ItemName = "Power Drill",
-                            LastUpdated = new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1590),
+                            LastUpdated = new DateTime(2026, 1, 2, 16, 37, 11, 709, DateTimeKind.Utc).AddTicks(7593),
+                            ReminderEmailSent = false,
                             RfidUid = "RFID001234567890",
                             Status = 0
                         },
@@ -81,7 +90,8 @@ namespace RfidWarehouseApi.Migrations
                         {
                             ItemId = 2,
                             ItemName = "Hammer",
-                            LastUpdated = new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1593),
+                            LastUpdated = new DateTime(2026, 1, 2, 16, 37, 11, 709, DateTimeKind.Utc).AddTicks(7598),
+                            ReminderEmailSent = false,
                             RfidUid = "RFID001234567891",
                             Status = 0
                         },
@@ -89,7 +99,8 @@ namespace RfidWarehouseApi.Migrations
                         {
                             ItemId = 3,
                             ItemName = "Screwdriver Set",
-                            LastUpdated = new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1594),
+                            LastUpdated = new DateTime(2026, 1, 2, 16, 37, 11, 709, DateTimeKind.Utc).AddTicks(7600),
+                            ReminderEmailSent = false,
                             RfidUid = "RFID001234567892",
                             Status = 0
                         },
@@ -97,7 +108,8 @@ namespace RfidWarehouseApi.Migrations
                         {
                             ItemId = 4,
                             ItemName = "Measuring Tape",
-                            LastUpdated = new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1596),
+                            LastUpdated = new DateTime(2026, 1, 2, 16, 37, 11, 709, DateTimeKind.Utc).AddTicks(7602),
+                            ReminderEmailSent = false,
                             RfidUid = "RFID001234567893",
                             Status = 0
                         },
@@ -105,7 +117,8 @@ namespace RfidWarehouseApi.Migrations
                         {
                             ItemId = 5,
                             ItemName = "Wrench Set",
-                            LastUpdated = new DateTime(2025, 12, 10, 3, 39, 7, 156, DateTimeKind.Utc).AddTicks(1597),
+                            LastUpdated = new DateTime(2026, 1, 2, 16, 37, 11, 709, DateTimeKind.Utc).AddTicks(7605),
+                            ReminderEmailSent = false,
                             RfidUid = "RFID001234567894",
                             Status = 0
                         });
@@ -291,7 +304,7 @@ namespace RfidWarehouseApi.Migrations
                             Email = "admin@warehouse.com",
                             Lastname = "User",
                             Name = "Admin",
-                            PasswordHash = "$2a$11$DypCtv8nu6am5dm3WZEhDu4dxjz//vn0OERzfRtFab8Prturp1jA2"
+                            PasswordHash = "$2a$11$RsgCc9Xu.LyvI2bmCTbnVu/F9YGdBgKddO5rT0FQjvvnqjHSqiX1i"
                         },
                         new
                         {
@@ -299,7 +312,7 @@ namespace RfidWarehouseApi.Migrations
                             Email = "john.doe@warehouse.com",
                             Lastname = "Doe",
                             Name = "John",
-                            PasswordHash = "$2a$11$UCxkT7ZgRwwUr4Mg5syDNe.x/OJOHKuqEbLw1yHW99dFARiBfJAgK"
+                            PasswordHash = "$2a$11$7vDI5K4HOL5925bCdxtvueQ6Vo.YEeXyvlPoHlzr1NS42JlxxZXPe"
                         });
                 });
 

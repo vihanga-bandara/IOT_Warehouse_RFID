@@ -7,16 +7,69 @@
       </div>
 
       <transition name="fade">
-        <div v-if="scannerNotice" class="info-message">
+        <div v-if="infoMessage" class="info-message">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M13 16h-1v-4h-1"/>
             <circle cx="12" cy="12" r="10"/>
           </svg>
-          {{ scannerNotice }}
+          {{ infoMessage }}
         </div>
       </transition>
 
-      <form @submit.prevent="handleLogin" class="login-form">
+      <!-- RFID Login Mode (Default) -->
+      <div v-if="loginMode === 'rfid'" class="rfid-login-section">
+        <div class="rfid-prompt">
+          <div class="rfid-scanner-visual">
+            <!-- Signal waves animation -->
+            <div class="signal-waves" :class="{ 'active': rfidConnected }">
+              <div class="wave wave-1"></div>
+              <div class="wave wave-2"></div>
+              <div class="wave wave-3"></div>
+            </div>
+            <div class="rfid-icon-container" :class="{ 'scanning': rfidConnected, 'connecting': isConnecting }">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="2" y="6" width="20" height="12" rx="2"/>
+                <path d="M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/>
+                <path d="M6 10h.01M6 14h.01"/>
+              </svg>
+            </div>
+          </div>
+          <h2 class="rfid-title">Tap Your ID Card</h2>
+          <p class="rfid-subtitle">
+            <template v-if="isConnecting">
+              <span class="connecting-text">Connecting to scanner...</span>
+            </template>
+            <template v-else-if="rfidConnected">
+              <span class="ready-text">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Ready - Place your card on the scanner
+              </span>
+            </template>
+            <template v-else-if="connectionError">
+              <span class="error-text">{{ connectionError }}</span>
+            </template>
+            <template v-else>
+              Initializing scanner connection...
+            </template>
+          </p>
+        </div>
+
+        <div class="login-mode-switch">
+          <span class="switch-text">or</span>
+          <button type="button" class="switch-btn" @click="switchToCredentials">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Login with email &amp; password
+          </button>
+        </div>
+      </div>
+
+      <!-- Credential Login Mode -->
+      <form v-else @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
           <label for="email">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -65,22 +118,6 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="scannerName">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            </svg>
-            Scanner / Kiosk Name
-          </label>
-          <input
-            id="scannerName"
-            v-model="scannerName"
-            type="text"
-            placeholder="Check scanner for the name"
-          />
-          <small class="hint">Required to access kiosk view</small>
-        </div>
-
         <button type="submit" class="login-btn" :disabled="loading">
           <span v-if="!loading">Sign In</span>
           <span v-else class="loading-spinner">
@@ -93,6 +130,17 @@
             Signing in...
           </span>
         </button>
+
+        <div class="login-mode-switch">
+          <span class="switch-text">or</span>
+          <button type="button" class="switch-btn" @click="switchToRfid">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="6" width="20" height="12" rx="2"/>
+              <path d="M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/>
+            </svg>
+            Login with RFID card
+          </button>
+        </div>
       </form>
 
       <transition name="fade">
@@ -110,71 +158,164 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import api from '../services/api'
+import { 
+  initLoginSignalR, 
+  joinScannerLoginGroup, 
+  onRfidLoginSuccess, 
+  onLoginFailed,
+  offRfidLoginSuccess,
+  offLoginFailed,
+  closeLoginSignalR 
+} from '../services/loginSignalr'
 
 export default {
   name: 'Login',
   setup() {
     const email = ref('')
     const password = ref('')
-    const scannerName = ref('')
     const error = ref('')
     const loading = ref(false)
     const showPassword = ref(false)
     const router = useRouter()
     const route = useRoute()
     const authStore = useAuthStore()
-    const scannerNotice = ref('')
+    const infoMessage = ref('')
+    
+    // RFID login state
+    const loginMode = ref('rfid') // 'rfid' or 'credentials'
+    const rfidConnected = ref(false)
+    const isConnecting = ref(false)
+    const connectionError = ref('')
+    const scannerDeviceId = ref(null)
+    const scannerName = ref('')
+
+    const POC_SCANNER_NAME = 'Pris-1'
+
+    const switchToCredentials = () => {
+      loginMode.value = 'credentials'
+    }
+
+    const switchToRfid = () => {
+      loginMode.value = 'rfid'
+      // Re-attempt connection if not already connected
+      if (!rfidConnected.value && !isConnecting.value) {
+        initializeScanner()
+      }
+    }
+
+    const initializeScanner = async () => {
+      isConnecting.value = true
+      connectionError.value = ''
+      rfidConnected.value = false
+
+      try {
+        // POC: use a single known scanner name and resolve its deviceId via anonymous endpoint
+        const { data: scanner } = await api.get(`/scanners/by-name/${encodeURIComponent(POC_SCANNER_NAME)}`)
+        scannerName.value = scanner.name
+        scannerDeviceId.value = scanner.deviceId
+
+        // Initialize SignalR connection for login events
+        await initLoginSignalR()
+        await joinScannerLoginGroup(scanner.deviceId)
+
+        // Set up event handlers
+        onRfidLoginSuccess(handleRfidLoginSuccess)
+        onLoginFailed(handleRfidLoginFailed)
+
+        rfidConnected.value = true
+        isConnecting.value = false
+        error.value = ''
+      } catch (err) {
+        console.error('Failed to initialize scanner:', err)
+        isConnecting.value = false
+        rfidConnected.value = false
+        if (err.response?.status === 404) {
+          connectionError.value = err.response?.data?.message || `Scanner '${POC_SCANNER_NAME}' not found`
+        } else {
+          connectionError.value = 'Failed to connect to scanner. Please try again.'
+        }
+      }
+    }
+
+    const handleRfidLoginSuccess = (data) => {
+      console.log('RFID login success:', data)
+      
+      // Use setRfidLoginData to store auth data with scanner info
+      // RFID login via IoT Hub already has the scanner bound on the backend
+      authStore.setRfidLoginData(data)
+
+      // Clean up and navigate
+      cleanupRfidListeners()
+      
+      const hasAdminRole = data.roleIds && data.roleIds.includes(1)
+      if (hasAdminRole) {
+        router.push('/dashboard')
+      } else {
+        router.push('/kiosk')
+      }
+    }
+
+    const handleRfidLoginFailed = (data) => {
+      console.log('RFID login failed:', data)
+      connectionError.value = data.Error || 'RFID login failed. Please try again.'
+      // Keep scanner connected for next scan attempt
+    }
+
+    const cleanupRfidListeners = () => {
+      offRfidLoginSuccess()
+      offLoginFailed()
+      closeLoginSignalR()
+    }
 
     const handleLogin = async () => {
       error.value = ''
       loading.value = true
 
       try {
-        await authStore.login(email.value, password.value, scannerName.value)
-        // Redirect based on user role
-        if (authStore.user?.role === 'Admin') {
-          router.push('/dashboard')
-        } else {
-          router.push('/kiosk')
-        }
+        // Login without scanner - scanner selection happens on the next page
+        await authStore.login(email.value, password.value)
+        // Always redirect to scanner selection page after credential login
+        router.push('/select-scanner')
       } catch (err) {
         // Log full error for debugging
         console.error('Login error response:', err?.response ?? err)
         const serverMessage = err.response?.data?.message
-        // If backend returned a 400 (scanner missing/not found), show it in the scanner notice area
-        if (err.response?.status === 400 && serverMessage) {
-          scannerNotice.value = serverMessage
-          error.value = ''
-        } else {
-          error.value = serverMessage || 'Login failed. Please check your credentials.'
-        }
+        error.value = serverMessage || 'Login failed. Please check your credentials.'
         // Clear form inputs on login failure
         email.value = ''
         password.value = ''
-        scannerName.value = ''
       } finally {
         loading.value = false
       }
     }
 
     onMounted(() => {
-      if (route.query?.scannerMissing) {
-        scannerNotice.value = 'Scanner information is missing — please provide a scanner name or set up a scanner before accessing the kiosk.'
-      }
+      // Auto-initialize scanner connection for RFID login
+      initializeScanner()
+    })
+
+    onBeforeUnmount(() => {
+      cleanupRfidListeners()
     })
 
     return {
       email,
       password,
-      scannerName,
       error,
       loading,
       showPassword,
       handleLogin,
-      scannerNotice
+      infoMessage,
+      loginMode,
+      rfidConnected,
+      isConnecting,
+      connectionError,
+      switchToCredentials,
+      switchToRfid
     }
   }
 }
@@ -185,22 +326,245 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: auto;
   background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 50%, var(--accent-green) 100%);
-  padding: 0;
+  padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
   margin: 0;
   box-sizing: border-box;
-  position: fixed;
-  top: 0;
-  left: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .login-card {
   width: 100%;
   max-width: 440px;
-  margin: 1rem;
+  margin: 1rem auto;
   animation: slideUp 0.4s ease-out;
+}
+
+@media (max-width: 600px) {
+  .login-container {
+    align-items: flex-start;
+    padding: max(0.75rem, env(safe-area-inset-top)) 0.75rem max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .login-card {
+    margin: 0.75rem auto;
+  }
+}
+
+/* Short screens (e.g., landscape / keyboard open): prioritize scrollability */
+@media (max-height: 720px) {
+  .login-container {
+    align-items: flex-start;
+  }
+}
+
+/* RFID Login Section Styles */
+.rfid-login-section {
+  text-align: center;
+}
+
+.rfid-prompt {
+  padding: 1.5rem 0;
+}
+
+/* Scanner Visual Container */
+.rfid-scanner-visual {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 160px;
+  margin-bottom: 1.5rem;
+}
+
+/* Signal Waves Animation */
+.signal-waves {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wave {
+  position: absolute;
+  border: 2px solid rgba(30, 144, 255, 0.3);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.signal-waves.active .wave {
+  animation: ripple 2.5s ease-out infinite;
+}
+
+.wave-1 {
+  width: 100px;
+  height: 100px;
+  animation-delay: 0s;
+}
+
+.wave-2 {
+  width: 100px;
+  height: 100px;
+  animation-delay: 0.8s;
+}
+
+.wave-3 {
+  width: 100px;
+  height: 100px;
+  animation-delay: 1.6s;
+}
+
+@keyframes ripple {
+  0% {
+    width: 100px;
+    height: 100px;
+    opacity: 0.6;
+    border-color: rgba(30, 144, 255, 0.6);
+  }
+  100% {
+    width: 160px;
+    height: 160px;
+    opacity: 0;
+    border-color: rgba(30, 144, 255, 0);
+  }
+}
+
+.rfid-icon-container {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+  border-radius: 50%;
+  color: white;
+  box-shadow: 0 8px 32px rgba(30, 144, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.rfid-icon-container.connecting {
+  animation: pulse-slow 1.5s ease-in-out infinite;
+}
+
+.rfid-icon-container.scanning {
+  animation: pulse-glow 2s ease-in-out infinite;
+  box-shadow: 0 0 40px rgba(30, 144, 255, 0.5), 0 8px 32px rgba(30, 144, 255, 0.3);
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 30px rgba(30, 144, 255, 0.4), 0 8px 32px rgba(30, 144, 255, 0.3);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 50px rgba(30, 144, 255, 0.6), 0 12px 48px rgba(30, 144, 255, 0.4);
+  }
+}
+
+.rfid-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+}
+
+.rfid-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0 0 1rem;
+  min-height: 1.5em;
+}
+
+.rfid-subtitle .connecting-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-tertiary);
+  animation: pulse-text 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-text {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.rfid-subtitle .ready-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--accent-green);
+  font-weight: 500;
+}
+
+.rfid-subtitle .error-text {
+  color: var(--error-color);
+}
+
+.login-mode-switch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.switch-text {
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: 2px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.switch-btn:hover {
+  border-color: var(--primary-light);
+  color: var(--primary-light);
+  background: rgba(30, 144, 255, 0.05);
+}
+
+.hint {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
 }
 
 @media (max-width: 600px) {

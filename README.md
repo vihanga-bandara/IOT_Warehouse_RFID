@@ -55,6 +55,8 @@ Both workflows support manual runs via `workflow_dispatch`.
 - `SQL_ADMIN_USERNAME`, `SQL_ADMIN_PASSWORD` (used during deployment)
 - `JWT_SECRET_KEY` (app setting)
 - `IOT_EVENTHUB_CONNECTION_STRING` (Event Hub-compatible endpoint connection string)
+- `MAILTRAP_API_TOKEN` (Mailtrap sandbox email sending)
+
 
 For more detailed deployment notes, see [DEPLOYMENT_SETUP.md](DEPLOYMENT_SETUP.md).
 

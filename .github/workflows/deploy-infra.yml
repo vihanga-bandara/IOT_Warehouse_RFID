@@ -60,6 +60,9 @@ jobs:
 
       - name: Deploy Bicep
         uses: azure/cli@v1
+        env:
+          MAILTRAP_API_TOKEN: ${{ secrets.MAILTRAP_API_TOKEN }}
+          MAILTRAP_INBOX_ID: ${{ vars.MAILTRAP_INBOX_ID }}
         with:
           inlineScript: |
             az deployment group create \
@@ -71,4 +74,6 @@ jobs:
                 sqlAdminUsername="$SQL_ADMIN_USERNAME" \
                 sqlAdminPassword="$SQL_ADMIN_PASSWORD" \
                 jwtSecretKey="$JWT_SECRET_KEY" \
-                iotEventHubConnectionString="$IOT_EVENTHUB_CONNECTION_STRING"
+                iotEventHubConnectionString="$IOT_EVENTHUB_CONNECTION_STRING" \
+                mailtrapApiToken="${MAILTRAP_API_TOKEN:-}" \
+                mailtrapInboxId="${MAILTRAP_INBOX_ID:-0}"

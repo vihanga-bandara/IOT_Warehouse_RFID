@@ -42,7 +42,7 @@
 
         <div class="cart-items">
           <div
-            v-for="tx in transactions"
+            v-for="tx in paginatedTransactions"
             :key="tx.id"
             class="cart-item"
             :class="actionClass(tx.action)"
@@ -71,13 +71,68 @@
             </div>
           </div>
         </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-controls" v-if="totalPages > 1">
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === 1"
+            @click="currentPage = 1"
+            title="First page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>
+            </svg>
+          </button>
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === 1"
+            @click="currentPage--"
+            title="Previous page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          
+          <div class="pagination-info">
+            Page {{ currentPage }} of {{ totalPages }}
+          </div>
+          
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === totalPages"
+            @click="currentPage++"
+            title="Next page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === totalPages"
+            @click="currentPage = totalPages"
+            title="Last page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/>
+            </svg>
+          </button>
+          
+          <select v-model="itemsPerPage" class="page-size-select">
+            <option :value="10">10 / page</option>
+            <option :value="25">25 / page</option>
+            <option :value="50">50 / page</option>
+          </select>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '../services/api'
 import { useTheme } from '../composables/useTheme'
 
@@ -86,6 +141,8 @@ export default {
   setup() {
     const transactions = ref([])
     const loading = ref(true)
+    const currentPage = ref(1)
+    const itemsPerPage = ref(25)
     const { isDark, toggleTheme } = useTheme()
 
     const fetchHistory = async () => {
@@ -98,6 +155,14 @@ export default {
         loading.value = false
       }
     }
+
+    const totalPages = computed(() => Math.ceil(transactions.value.length / itemsPerPage.value) || 1)
+    
+    const paginatedTransactions = computed(() => {
+      const start = (currentPage.value - 1) * itemsPerPage.value
+      const end = start + itemsPerPage.value
+      return transactions.value.slice(start, end)
+    })
 
     const formatDate = (timestamp) => new Date(timestamp).toLocaleString()
 
@@ -124,6 +189,10 @@ export default {
 
     return {
       transactions,
+      paginatedTransactions,
+      currentPage,
+      itemsPerPage,
+      totalPages,
       loading,
       formatDate,
       actionLabel,
@@ -377,6 +446,64 @@ export default {
   to { transform: rotate(360deg); }
 }
 
+/* Pagination Controls */
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem 0;
+  margin-top: 1rem;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary, #fff);
+  color: var(--text-primary, #333);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--primary-light, #1e90ff);
+  color: white;
+  border-color: var(--primary-light, #1e90ff);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  padding: 0 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+}
+
+.page-size-select {
+  margin-left: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary, #fff);
+  color: var(--text-primary, #333);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.page-size-select:focus {
+  outline: none;
+  border-color: var(--primary-light, #1e90ff);
+}
+
 @media (max-width: 600px) {
   .kiosk-container {
     padding: 1.5rem;
@@ -384,6 +511,16 @@ export default {
   
   .kiosk-header h1 {
     font-size: 1.4rem;
+  }
+  
+  .pagination-controls {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .page-size-select {
+    margin-left: 0;
+    margin-top: 0.5rem;
   }
 }
 </style>

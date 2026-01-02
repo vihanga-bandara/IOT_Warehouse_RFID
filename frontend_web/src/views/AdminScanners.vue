@@ -45,12 +45,12 @@
         </div>
 
         <div class="results-info">
-          {{ filteredScanners.length }} scanner<span v-if="filteredScanners.length !== 1">s</span>
+          Showing {{ paginatedScanners.length }} of {{ filteredScanners.length }} scanner<span v-if="filteredScanners.length !== 1">s</span>
         </div>
 
         <div class="scanners-grid">
           <div
-            v-for="scanner in filteredScanners"
+            v-for="scanner in paginatedScanners"
             :key="scanner.scannerId"
             class="user-card scanner-card"
           >
@@ -91,6 +91,61 @@
               </button>
             </div>
           </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-controls" v-if="totalPages > 1">
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === 1"
+            @click="currentPage = 1"
+            title="First page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>
+            </svg>
+          </button>
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === 1"
+            @click="currentPage--"
+            title="Previous page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          
+          <div class="pagination-info">
+            Page {{ currentPage }} of {{ totalPages }}
+          </div>
+          
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === totalPages"
+            @click="currentPage++"
+            title="Next page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === totalPages"
+            @click="currentPage = totalPages"
+            title="Last page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/>
+            </svg>
+          </button>
+          
+          <select v-model="itemsPerPage" class="page-size-select">
+            <option :value="10">10 / page</option>
+            <option :value="25">25 / page</option>
+            <option :value="50">50 / page</option>
+          </select>
         </div>
       </div>
 
@@ -186,6 +241,8 @@ export default {
     const isEditing = ref(false)
     const submitting = ref(false)
     const currentId = ref(null)
+    const currentPage = ref(1)
+    const itemsPerPage = ref(25)
 
     const form = reactive({
       name: '',
@@ -287,6 +344,14 @@ export default {
       })
     })
 
+    const totalPages = computed(() => Math.ceil(filteredScanners.value.length / itemsPerPage.value) || 1)
+    
+    const paginatedScanners = computed(() => {
+      const start = (currentPage.value - 1) * itemsPerPage.value
+      const end = start + itemsPerPage.value
+      return filteredScanners.value.slice(start, end)
+    })
+
     const openCreate = () => {
       resetForm()
       showModal.value = true
@@ -357,6 +422,10 @@ export default {
       formError,
       formSuccess,
       filteredScanners,
+      paginatedScanners,
+      currentPage,
+      itemsPerPage,
+      totalPages,
       openCreate,
       openEdit,
       closeModal,
@@ -795,5 +864,75 @@ export default {
 
 .form-input.has-error {
   border-color: #f97373;
+}
+
+/* Pagination Controls */
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem 0;
+  margin-top: 1rem;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--primary-light);
+  color: white;
+  border-color: var(--primary-light);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  padding: 0 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.page-size-select {
+  margin-left: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.page-size-select:focus {
+  outline: none;
+  border-color: var(--primary-light);
+}
+
+@media (max-width: 600px) {
+  .pagination-controls {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .page-size-select {
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
 }
 </style>
