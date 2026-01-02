@@ -15,7 +15,8 @@ namespace RfidWarehouseApi.Services;
 public class IoTHubListenerService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly IHubContext<KioskHub> _hubContext;
+    private readonly IHubContext<KioskHub> _kioskHubContext;
+    private readonly IHubContext<LoginHub> _loginHubContext;
     private readonly ICheckoutSessionManager _sessionManager;
     private readonly IScannerSessionService _scannerSessionService;
     private readonly ILogger<IoTHubListenerService> _logger;
@@ -29,14 +30,16 @@ public class IoTHubListenerService : BackgroundService
 
     public IoTHubListenerService(
         IServiceProvider serviceProvider,
-        IHubContext<KioskHub> hubContext,
+        IHubContext<KioskHub> kioskHubContext,
+        IHubContext<LoginHub> loginHubContext,
         ICheckoutSessionManager sessionManager,
         IScannerSessionService scannerSessionService,
         ILogger<IoTHubListenerService> logger,
         IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
-        _hubContext = hubContext;
+        _kioskHubContext = kioskHubContext;
+        _loginHubContext = loginHubContext;
         _sessionManager = sessionManager;
         _scannerSessionService = scannerSessionService;
         _logger = logger;
@@ -219,7 +222,15 @@ public class IoTHubListenerService : BackgroundService
                         effectiveDeviceId,
                         scanData.RfidUid);
 
-                    await ProcessRfidScanAsync(scanData, effectiveDeviceId);
+                    // Check if this is a login card (format: LOGIN:uniqueid)
+                    if (scanData.RfidUid.StartsWith(RfidPrefixes.UserLogin, StringComparison.OrdinalIgnoreCase))
+                    {
+                        await ProcessRfidLoginAsync(scanData, effectiveDeviceId);
+                    }
+                    else
+                    {
+                        await ProcessRfidScanAsync(scanData, effectiveDeviceId);
+                    }
                 }
             }
             catch (Exception ex)
@@ -303,7 +314,7 @@ public class IoTHubListenerService : BackgroundService
             {
                 var cart = _sessionManager.GetUserCart(userId);
 
-                await _hubContext.Clients.Group($"scanner_{deviceId}")
+                await _kioskHubContext.Clients.Group($"scanner_{deviceId}")
                     .SendAsync("CartUpdated", cart);
 
                 _logger.LogInformation("Item {ItemName} added to cart for user {UserId} via scanner {DeviceId}",
@@ -316,6 +327,92 @@ public class IoTHubListenerService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing RFID scan for UID: {RfidUid}", scanData.RfidUid);
+        }
+    }
+
+    private async Task ProcessRfidLoginAsync(RfidScanMessage scanData, string deviceId)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<WarehouseDbContext>();
+        var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
+
+        try
+        {
+            // Extract the actual RFID UID from the login card (remove the LOGIN: prefix)
+            var rfidTagUid = scanData.RfidUid.Substring(RfidPrefixes.UserLogin.Length);
+
+            _logger.LogInformation("Processing RFID login from device {DeviceId} with tag {RfidTagUid}",
+                deviceId, rfidTagUid);
+
+            // Check if scanner exists
+            var scanner = await context.Scanners
+                .FirstOrDefaultAsync(s => s.DeviceId == deviceId);
+
+            if (scanner == null)
+            {
+                _logger.LogWarning("RFID login attempt from unknown scanner: {DeviceId}", deviceId);
+                // Broadcast to both hubs (LoginHub for unauthenticated clients, KioskHub for authenticated)
+                await Task.WhenAll(
+                    _loginHubContext.Clients.Group($"scanner_{deviceId}")
+                        .SendAsync(HubEvents.LoginFailed, new { Error = "Unknown scanner device" }),
+                    _kioskHubContext.Clients.Group($"scanner_{deviceId}")
+                        .SendAsync(HubEvents.LoginFailed, new { Error = "Unknown scanner device" })
+                );
+                return;
+            }
+
+            // Try to authenticate user via RFID
+            var authResult = await authService.LoginWithRfidAsync(rfidTagUid, scanner.Name);
+
+            if (authResult == null)
+            {
+                _logger.LogWarning("RFID login failed: user not found for tag {RfidTagUid}", rfidTagUid);
+                await Task.WhenAll(
+                    _loginHubContext.Clients.Group($"scanner_{deviceId}")
+                        .SendAsync(HubEvents.LoginFailed, new { Error = "User not found for this RFID card" }),
+                    _kioskHubContext.Clients.Group($"scanner_{deviceId}")
+                        .SendAsync(HubEvents.LoginFailed, new { Error = "User not found for this RFID card" })
+                );
+                return;
+            }
+
+            // Bind user to this scanner
+            await _scannerSessionService.BindUserToScannerAsync(authResult.UserId, deviceId);
+
+            var loginResponse = new RfidLoginResponseDto
+            {
+                Success = true,
+                Token = authResult.Token,
+                Email = authResult.Email,
+                Name = authResult.Name,
+                Lastname = authResult.Lastname,
+                UserId = authResult.UserId,
+                RoleIds = authResult.RoleIds,
+                ScannerDeviceId = deviceId,
+                ScannerName = scanner.Name
+            };
+
+            // Broadcast successful login to both hubs
+            await Task.WhenAll(
+                _loginHubContext.Clients.Group($"scanner_{deviceId}")
+                    .SendAsync(HubEvents.RfidLoginSuccess, loginResponse),
+                _kioskHubContext.Clients.Group($"scanner_{deviceId}")
+                    .SendAsync(HubEvents.RfidLoginSuccess, loginResponse)
+            );
+
+            _logger.LogInformation(
+                "RFID login successful: User {Email} (UserId={UserId}) logged in via scanner {DeviceId}",
+                authResult.Email, authResult.UserId, deviceId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing RFID login for UID: {RfidUid}", scanData.RfidUid);
+            await Task.WhenAll(
+                _loginHubContext.Clients.Group($"scanner_{deviceId}")
+                    .SendAsync(HubEvents.LoginFailed, new { Error = "An error occurred during login" }),
+                _kioskHubContext.Clients.Group($"scanner_{deviceId}")
+                    .SendAsync(HubEvents.LoginFailed, new { Error = "An error occurred during login" })
+            );
         }
     }
 

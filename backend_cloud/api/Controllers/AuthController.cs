@@ -71,6 +71,44 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Login using RFID card UID (for kiosk RFID-based authentication)
+    /// </summary>
+    [HttpPost("login/rfid")]
+    public async Task<IActionResult> LoginWithRfid([FromBody] RfidLoginDto loginDto)
+    {
+        if (string.IsNullOrWhiteSpace(loginDto.RfidTagUid))
+        {
+            return BadRequest(new { message = "RFID tag UID is required" });
+        }
+
+        try
+        {
+            var result = await _authService.LoginWithRfidAsync(loginDto.RfidTagUid, loginDto.ScannerName);
+            if (result == null)
+            {
+                return Unauthorized(new { message = "No user found for this RFID card" });
+            }
+            return Ok(new RfidLoginResponseDto
+            {
+                Success = true,
+                Token = result.Token,
+                Email = result.Email,
+                Name = result.Name,
+                Lastname = result.Lastname,
+                UserId = result.UserId,
+                RoleIds = result.RoleIds,
+                ScannerDeviceId = result.ScannerDeviceId,
+                ScannerName = result.ScannerName
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during RFID login");
+            return StatusCode(500, new { message = "An unexpected error occurred during login" });
+        }
+    }
+
     [HttpGet("me")]
     [Authorize]
     public async Task<IActionResult> GetCurrentUser()
@@ -220,5 +258,77 @@ public class AuthController : ControllerBase
             .ToListAsync();
 
         return Ok(transactions);
+    }
+
+    /// <summary>
+    /// Validate and bind a scanner to the current user session.
+    /// Called after login to select which scanner/kiosk to use.
+    /// </summary>
+    [HttpPost("bind-scanner")]
+    [Authorize]
+    public async Task<IActionResult> BindScanner([FromBody] BindScannerDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.ScannerName))
+        {
+            return BadRequest(new { message = "Scanner name is required" });
+        }
+
+        if (!User.TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        // Look up scanner by name (case-insensitive)
+        var normalized = dto.ScannerName.Trim().ToLower();
+        var scanner = await _context.Scanners
+            .FirstOrDefaultAsync(s => s.Name != null && s.Name.ToLower() == normalized);
+
+        if (scanner == null)
+        {
+            return NotFound(new { message = $"Scanner '{dto.ScannerName}' not found. Please check the scanner name and try again." });
+        }
+
+        // Bind user to scanner session
+        var scannerSessionService = HttpContext.RequestServices.GetRequiredService<IScannerSessionService>();
+        await scannerSessionService.BindUserToScannerAsync(userId, scanner.Name!);
+
+        _logger.LogInformation("User {UserId} bound to scanner {ScannerName} ({DeviceId})", userId, scanner.Name, scanner.DeviceId);
+
+        return Ok(new 
+        { 
+            scannerDeviceId = scanner.DeviceId, 
+            scannerName = scanner.Name,
+            message = "Scanner bound successfully"
+        });
+    }
+
+    [HttpGet("generate-rfid-uid")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> GenerateUniqueRfidUid()
+    {
+        string newUid;
+        do
+        {
+            // Generate a unique raw UID (no LOGIN: prefix - the prefix is added by the scanner when sending)
+            newUid = Guid.NewGuid().ToString("N")[..14].ToUpperInvariant();
+        }
+        while (await _context.Users.AnyAsync(u => u.RfidTagUid == newUid));
+
+        return Ok(new { rfidUid = newUid });
+    }
+
+    [HttpGet("check-rfid-uid")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> CheckRfidUidAvailable([FromQuery] string rfidUid, [FromQuery] int? excludeUserId = null)
+    {
+        var query = _context.Users.Where(u => u.RfidTagUid == rfidUid);
+        
+        if (excludeUserId.HasValue)
+        {
+            query = query.Where(u => u.UserId != excludeUserId.Value);
+        }
+
+        var isInUse = await query.AnyAsync();
+        return Ok(new { available = !isInUse });
     }
 }

@@ -14,4 +14,6 @@ public class AdminUpdateUserDto
     public List<int> RoleIds { get; set; } = new();
 
     public string? NewPassword { get; set; }
+
+    public string? RfidTagUid { get; set; }
 }

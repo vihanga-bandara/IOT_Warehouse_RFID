@@ -22,6 +22,12 @@
     },
     "iotEventHubConnectionString": {
       "value": "Endpoint=sb://your-iothub.servicebus.windows.net/;SharedAccessKeyName=service;SharedAccessKey=replace-this;EntityPath=your-iothub"
+    },
+    "mailtrapApiToken": {
+      "value": "replace-with-your-mailtrap-api-token"
+    },
+    "mailtrapInboxId": {
+      "value": "replace-with-your-mailtrap-inbox-id"
     }
   }
 }

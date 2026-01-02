@@ -45,7 +45,7 @@
 
       <div v-else class="transactions-table-section">
         <div class="results-info">
-          Showing {{ filteredTransactions.length }} transaction<span v-if="filteredTransactions.length !== 1">s</span>
+          Showing {{ paginatedTransactions.length }} of {{ filteredTransactions.length }} transaction<span v-if="filteredTransactions.length !== 1">s</span>
         </div>
         <div class="table-wrapper">
           <table class="transactions-table">
@@ -59,7 +59,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="tx in filteredTransactions" :key="tx.id" class="transaction-row">
+              <tr v-for="tx in paginatedTransactions" :key="tx.id" class="transaction-row">
                 <td class="item-cell">{{ tx.itemName }}</td>
                 <td class="user-cell">{{ tx.userName }}</td>
                 <td class="action-cell">
@@ -72,6 +72,62 @@
               </tr>
             </tbody>
           </table>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div class="pagination-controls" v-if="totalPages > 1">
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === 1"
+            @click="currentPage = 1"
+            title="First page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>
+            </svg>
+          </button>
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === 1"
+            @click="currentPage--"
+            title="Previous page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          
+          <div class="pagination-info">
+            Page {{ currentPage }} of {{ totalPages }}
+          </div>
+          
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === totalPages"
+            @click="currentPage++"
+            title="Next page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === totalPages"
+            @click="currentPage = totalPages"
+            title="Last page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/>
+            </svg>
+          </button>
+          
+          <select v-model="itemsPerPage" class="page-size-select">
+            <option :value="10">10 / page</option>
+            <option :value="25">25 / page</option>
+            <option :value="50">50 / page</option>
+            <option :value="100">100 / page</option>
+          </select>
         </div>
       </div>
     </div>
@@ -96,6 +152,8 @@ export default {
     const filterAction = ref('')
     const filterUser = ref('')
     const userIdFilter = ref(route.query.userId ? parseInt(route.query.userId) : null)
+    const currentPage = ref(1)
+    const itemsPerPage = ref(25)
 
     const filteredTransactions = computed(() => {
       const actionTerm = filterAction.value.toLowerCase()
@@ -118,6 +176,14 @@ export default {
         const userIdMatch = !userIdFilter.value || tx.userId === userIdFilter.value
         return actionMatch && userMatch && userIdMatch
       })
+    })
+
+    const totalPages = computed(() => Math.ceil(filteredTransactions.value.length / itemsPerPage.value) || 1)
+    
+    const paginatedTransactions = computed(() => {
+      const start = (currentPage.value - 1) * itemsPerPage.value
+      const end = start + itemsPerPage.value
+      return filteredTransactions.value.slice(start, end)
     })
 
     const fetchTransactions = async () => {
@@ -174,6 +240,10 @@ export default {
       filterAction,
       filterUser,
       filteredTransactions,
+      paginatedTransactions,
+      currentPage,
+      itemsPerPage,
+      totalPages,
       formatDate,
       clearFilters,
       actionLabel,
@@ -434,6 +504,77 @@ export default {
   
   .transactions-table th {
     font-size: 0.8rem;
+  }
+}
+
+/* Pagination Controls */
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, rgba(0, 61, 107, 0.02) 0%, rgba(80, 200, 120, 0.02) 100%);
+  border-top: 1px solid var(--border-color);
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--primary-light);
+  color: white;
+  border-color: var(--primary-light);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  padding: 0 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.page-size-select {
+  margin-left: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.page-size-select:focus {
+  outline: none;
+  border-color: var(--primary-light);
+}
+
+@media (max-width: 600px) {
+  .pagination-controls {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .page-size-select {
+    margin-left: 0;
+    margin-top: 0.5rem;
   }
 }
 </style>

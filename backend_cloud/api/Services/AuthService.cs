@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RfidWarehouseApi.Constants;
 using RfidWarehouseApi.Data;
 using RfidWarehouseApi.DTOs;
 using RfidWarehouseApi.Models;
@@ -9,6 +10,7 @@ namespace RfidWarehouseApi.Services;
 public interface IAuthService
 {
     Task<AuthResponseDto?> LoginAsync(LoginDto loginDto);
+    Task<AuthResponseDto?> LoginWithRfidAsync(string rfidTagUid, string? scannerName = null);
     Task<AuthResponseDto?> RegisterAsync(RegisterDto registerDto);
     Task<User?> GetUserByIdAsync(int userId);
     Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword);
@@ -57,43 +59,9 @@ public class AuthService : IAuthService
             var token = _tokenService.GenerateToken(user);
 
             var roleIds = user.UserRights.Select(ur => ur.RoleId).ToList();
-            var isAdmin = roleIds.Contains(1);
 
-            string? scannerDeviceId = null;
-            string? scannerName = null;
-
-            // For non-admin users, scanner name is required because they go directly to kiosk
-            if (!isAdmin)
-            {
-                if (string.IsNullOrWhiteSpace(loginDto.ScannerName))
-                {
-                    _logger.LogWarning("Login failed for user {Email}: scanner name is required for non-admin users", loginDto.Email);
-                    throw new InvalidOperationException("Scanner name is required to access the kiosk. Please provide a scanner name.");
-                }
-
-                var binding = await _scannerSessionService.BindUserToScannerAsync(user.UserId, loginDto.ScannerName);
-                if (binding == null)
-                {
-                    _logger.LogWarning("Login failed for user {Email}: scanner not found for name {ScannerName}", loginDto.Email, loginDto.ScannerName);
-                    throw new InvalidOperationException($"Scanner '{loginDto.ScannerName}' not found. Please check the scanner name and try again.");
-                }
-
-                scannerDeviceId = binding.Value.DeviceId;
-                scannerName = binding.Value.Name;
-            }
-            else
-            {
-                // Admins can log in without scanner; they will choose scanner later
-                if (!string.IsNullOrWhiteSpace(loginDto.ScannerName))
-                {
-                    var binding = await _scannerSessionService.BindUserToScannerAsync(user.UserId, loginDto.ScannerName);
-                    if (binding != null)
-                    {
-                        scannerDeviceId = binding.Value.DeviceId;
-                        scannerName = binding.Value.Name;
-                    }
-                }
-            }
+            // Scanner selection is now handled in a separate step after authentication
+            // No longer require or bind scanner at login time
 
             return new AuthResponseDto
             {
@@ -103,8 +71,8 @@ public class AuthService : IAuthService
                 Lastname = user.Lastname,
                 UserId = user.UserId,
                 RoleIds = roleIds,
-                ScannerDeviceId = scannerDeviceId,
-                ScannerName = scannerName
+                ScannerDeviceId = null,
+                ScannerName = null
             };
         }
         catch (InvalidOperationException)
@@ -116,6 +84,80 @@ public class AuthService : IAuthService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during login for user: {Email}", loginDto.Email);
+            return null;
+        }
+    }
+
+    public async Task<AuthResponseDto?> LoginWithRfidAsync(string rfidTagUid, string? scannerName = null)
+    {
+        try
+        {
+            var normalized = rfidTagUid?.Trim() ?? string.Empty;
+            if (normalized.StartsWith(RfidPrefixes.UserLogin, StringComparison.OrdinalIgnoreCase))
+            {
+                normalized = normalized.Substring(RfidPrefixes.UserLogin.Length);
+            }
+
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                _logger.LogWarning("RFID login attempt with empty tag UID");
+                return null;
+            }
+
+            var withPrefix = $"{RfidPrefixes.UserLogin}{normalized}";
+
+            // Look up user by RFID tag UID.
+            // Accept either raw UID (preferred) or legacy values stored with the LOGIN: prefix.
+            var user = await _context.Users
+                .Include(u => u.UserRights)
+                .FirstOrDefaultAsync(u => u.RfidTagUid == normalized || u.RfidTagUid == withPrefix);
+
+            if (user == null)
+            {
+                _logger.LogWarning("RFID login attempt with unknown tag: {RfidTagUid}", normalized);
+                return null;
+            }
+
+            var token = _tokenService.GenerateToken(user);
+
+            var roleIds = user.UserRights.Select(ur => ur.RoleId).ToList();
+            var isAdmin = roleIds.Contains(1);
+
+            string? scannerDeviceId = null;
+            string? boundScannerName = null;
+
+            // If scanner name is provided, bind the user to that scanner
+            if (!string.IsNullOrWhiteSpace(scannerName))
+            {
+                var binding = await _scannerSessionService.BindUserToScannerAsync(user.UserId, scannerName);
+                if (binding != null)
+                {
+                    scannerDeviceId = binding.Value.DeviceId;
+                    boundScannerName = binding.Value.Name;
+                }
+                else
+                {
+                    _logger.LogWarning("RFID login: Scanner not found for name {ScannerName}", scannerName);
+                }
+            }
+
+            _logger.LogInformation("RFID login successful for user {Email} (UserId={UserId})", user.Email, user.UserId);
+
+            return new AuthResponseDto
+            {
+                Token = token,
+                Email = user.Email,
+                Name = user.Name,
+                Lastname = user.Lastname,
+                UserId = user.UserId,
+                RoleIds = roleIds,
+                ScannerDeviceId = scannerDeviceId,
+                ScannerName = boundScannerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during RFID login for tag: {RfidTagUid}", rfidTagUid);
             return null;
         }
     }
@@ -140,7 +182,11 @@ public class AuthService : IAuthService
                 PasswordHash = passwordHash,
                 Name = registerDto.Name,
                 Lastname = registerDto.Lastname,
-                RfidTagUid = registerDto.RfidTagUid
+                RfidTagUid = string.IsNullOrWhiteSpace(registerDto.RfidTagUid)
+                    ? null
+                    : registerDto.RfidTagUid.Trim().StartsWith(RfidPrefixes.UserLogin, StringComparison.OrdinalIgnoreCase)
+                        ? registerDto.RfidTagUid.Trim().Substring(RfidPrefixes.UserLogin.Length)
+                        : registerDto.RfidTagUid.Trim()
             };
 
             _context.Users.Add(user);
@@ -232,6 +278,22 @@ public class AuthService : IAuthService
             if (!string.IsNullOrWhiteSpace(dto.Email)) user.Email = dto.Email;
             if (!string.IsNullOrWhiteSpace(dto.Name)) user.Name = dto.Name;
             if (!string.IsNullOrWhiteSpace(dto.Lastname)) user.Lastname = dto.Lastname;
+            
+            // Handle RFID Tag UID - allow setting or clearing
+            if (dto.RfidTagUid != null)
+            {
+                var trimmed = dto.RfidTagUid?.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed))
+                {
+                    user.RfidTagUid = null;
+                }
+                else
+                {
+                    user.RfidTagUid = trimmed.StartsWith(RfidPrefixes.UserLogin, StringComparison.OrdinalIgnoreCase)
+                        ? trimmed.Substring(RfidPrefixes.UserLogin.Length)
+                        : trimmed;
+                }
+            }
 
             if (!string.IsNullOrWhiteSpace(dto.NewPassword))
             {

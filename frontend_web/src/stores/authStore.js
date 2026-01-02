@@ -20,9 +20,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
 
-  const login = async (email, password, scannerNameInput) => {
+  const login = async (email, password) => {
     try {
-      const response = await api.post('/auth/login', { email, password, scannerName: scannerNameInput })
+      const response = await api.post('/auth/login', { email, password })
       token.value = response.data.token
       // Map RoleIds to role name: if user has Admin role (1), they're Admin
       const hasAdminRole = response.data.roleIds && response.data.roleIds.includes(1)
@@ -34,26 +34,59 @@ export const useAuthStore = defineStore('auth', () => {
         roleIds: response.data.roleIds,
         role: hasAdminRole ? 'Admin' : 'User'
       }
-      scannerDeviceId.value = response.data.scannerDeviceId || null
-      scannerName.value = response.data.scannerName || null
+      // Scanner is no longer set at login time - it's done in a separate step
+      scannerDeviceId.value = null
+      scannerName.value = null
       localStorage.setItem('authToken', token.value)
       localStorage.setItem('user', JSON.stringify(user.value))
-      if (scannerDeviceId.value) {
-        localStorage.setItem('scannerDeviceId', scannerDeviceId.value)
-      } else {
-        localStorage.removeItem('scannerDeviceId')
-      }
-      if (scannerName.value) {
-        localStorage.setItem('scannerName', scannerName.value)
-      } else {
-        localStorage.removeItem('scannerName')
-      }
+      localStorage.removeItem('scannerDeviceId')
+      localStorage.removeItem('scannerName')
       api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
       return response.data
     } catch (error) {
       console.error('Login failed:', error)
       throw error
     }
+  }
+
+  const bindScanner = async (scannerNameInput) => {
+    try {
+      const response = await api.post('/auth/bind-scanner', { scannerName: scannerNameInput })
+      scannerDeviceId.value = response.data.scannerDeviceId
+      scannerName.value = response.data.scannerName
+      localStorage.setItem('scannerDeviceId', response.data.scannerDeviceId)
+      localStorage.setItem('scannerName', response.data.scannerName)
+      return response.data
+    } catch (error) {
+      console.error('Failed to bind scanner:', error)
+      throw error
+    }
+  }
+
+  const setRfidLoginData = (data) => {
+    // Used by RFID login flow where scanner is already known
+    token.value = data.token
+    const hasAdminRole = data.roleIds && data.roleIds.includes(1)
+    user.value = {
+      email: data.email,
+      name: data.name,
+      lastname: data.lastname,
+      userId: data.userId,
+      roleIds: data.roleIds,
+      role: hasAdminRole ? 'Admin' : 'User'
+    }
+    scannerDeviceId.value = data.scannerDeviceId || null
+    scannerName.value = data.scannerName || null
+
+    localStorage.setItem('authToken', data.token)
+    localStorage.setItem('user', JSON.stringify(user.value))
+    if (data.scannerDeviceId) {
+      localStorage.setItem('scannerDeviceId', data.scannerDeviceId)
+    }
+    if (data.scannerName) {
+      localStorage.setItem('scannerName', data.scannerName)
+    }
+    api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
   }
 
   const register = async (email, password, name, lastname) => {
@@ -106,6 +139,8 @@ export const useAuthStore = defineStore('auth', () => {
     scannerName,
     isAuthenticated,
     login,
+    bindScanner,
+    setRfidLoginData,
     register,
     logout,
     initializeAuth

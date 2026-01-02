@@ -35,6 +35,19 @@ public class Item
     [Column("notes")]
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// Indicates if a reminder email has been sent for this item while borrowed.
+    /// Resets to false when item is returned.
+    /// </summary>
+    [Column("reminder_email_sent")]
+    public bool ReminderEmailSent { get; set; } = false;
+
+    /// <summary>
+    /// When the last reminder email was sent for this item.
+    /// </summary>
+    [Column("reminder_email_sent_at")]
+    public DateTime? ReminderEmailSentAt { get; set; }
+
     // Navigation properties
     [ForeignKey("CurrentHolderId")]
     public virtual User? CurrentHolder { get; set; }

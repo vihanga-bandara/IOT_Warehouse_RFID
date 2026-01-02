@@ -104,6 +104,9 @@ public class TransactionController : ControllerBase
                     {
                         item.Status = ItemStatus.Available;
                         item.CurrentHolderId = null;
+                        // Reset reminder email flag when item is returned
+                        item.ReminderEmailSent = false;
+                        item.ReminderEmailSentAt = null;
                     }
 
                     item.LastUpdated = DateTime.UtcNow;
