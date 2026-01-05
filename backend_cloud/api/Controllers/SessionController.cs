@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using RfidWarehouseApi.Services;
-using System.Security.Claims;
+using RfidWarehouseApi.Extensions;
 
 namespace RfidWarehouseApi.Controllers;
 
@@ -22,8 +22,7 @@ public class SessionController : ControllerBase
     [HttpGet("current")]
     public IActionResult GetCurrentSession()
     {
-        var userIdClaim = User.FindFirst("UserId")?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        if (!User.TryGetUserId(out var userId))
         {
             return Unauthorized();
         }
@@ -45,8 +44,7 @@ public class SessionController : ControllerBase
     [HttpPost("clear")]
     public IActionResult ClearSession()
     {
-        var userIdClaim = User.FindFirst("UserId")?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        if (!User.TryGetUserId(out var userId))
         {
             return Unauthorized();
         }
@@ -60,8 +58,7 @@ public class SessionController : ControllerBase
     [HttpDelete("items/{itemId}")]
     public IActionResult RemoveItemFromCart(int itemId)
     {
-        var userIdClaim = User.FindFirst("UserId")?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        if (!User.TryGetUserId(out var userId))
         {
             return Unauthorized();
         }

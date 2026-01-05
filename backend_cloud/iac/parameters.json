@@ -15,7 +15,19 @@
       "value": "sqladmin"
     },
     "sqlAdminPassword": {
-      "value": "ChangeMe@123456"
+      "value": "replace-with-a-strong-password"
+    },
+    "jwtSecretKey": {
+      "value": "replace-with-a-long-random-secret"
+    },
+    "iotEventHubConnectionString": {
+      "value": "Endpoint=sb://your-iothub.servicebus.windows.net/;SharedAccessKeyName=service;SharedAccessKey=replace-this;EntityPath=your-iothub"
+    },
+    "mailtrapApiToken": {
+      "value": "replace-with-your-mailtrap-api-token"
+    },
+    "mailtrapInboxId": {
+      "value": "replace-with-your-mailtrap-inbox-id"
     }
   }
 }

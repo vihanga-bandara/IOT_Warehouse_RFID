@@ -9,6 +9,19 @@ param projectName string = 'rfid-warehouse'
 param sqlAdminUsername string
 @secure()
 param sqlAdminPassword string
+@secure()
+param jwtSecretKey string
+param jwtIssuer string = 'RfidWarehouseApi'
+param jwtAudience string = 'RfidWarehouseClient'
+param jwtExpiryMinutes int = 480
+@secure()
+param iotEventHubConnectionString string
+param iotConsumerGroup string = 'rfid-api'
+
+// Mailtrap (email sending)
+@secure()
+param mailtrapApiToken string = ''
+param mailtrapInboxId string = '0'
 // Capture creation timestamp once (allowed in parameter default)
 param createdDate string = utcNow('u')
 
@@ -20,6 +33,7 @@ var appServiceName = '${resourcePrefix}-app-${uniqueSuffix}'
 var appServicePlanName = '${resourcePrefix}-plan'
 var sqlServerName = '${resourcePrefix}-sqlserver-${uniqueSuffix}'
 var sqlDbName = '${resourcePrefix}-db'
+var appInsightsName = '${resourcePrefix}-appi-${uniqueSuffix}'
 
 // Tags
 var commonTags = {
@@ -42,12 +56,42 @@ resource iotHub 'Microsoft.Devices/IotHubs@2023-06-30' = {
     type: 'SystemAssigned'
   }
   properties: {
+    minTlsVersion: '1.2'
     eventHubEndpoints: {
       events: {
         retentionTimeInDays: 1
         partitionCount: 2
       }
     }
+    routing: {
+      fallbackRoute: {
+        isEnabled: true
+        endpointNames: [
+          'events' 
+        ]
+        source: 'DeviceMessages' 
+        condition: 'true' 
+      }
+    }
+  }
+}
+
+// Create a dedicated consumer group for this API (avoid using $Default)
+resource iotConsumerGroupResource 'Microsoft.Devices/IotHubs/eventHubEndpoints/ConsumerGroups@2023-06-30' = {
+  name: '${iotHub.name}/events/${iotConsumerGroup}'
+  properties: {
+    name: iotConsumerGroup
+  }
+}
+
+// ===== Application Insights =====
+resource appInsights 'Microsoft.Insights/components@2015-05-01' = {
+  name: appInsightsName
+  location: location
+  kind: 'web'
+  tags: commonTags
+  properties: {
+    Application_Type: 'web'
   }
 }
 
@@ -90,17 +134,52 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
           name: 'ASPNETCORE_URLS'
           value: 'http://+:80'
         }
+        {
+          name: 'Jwt__SecretKey'
+          value: jwtSecretKey
+        }
+        {
+          name: 'Jwt__Issuer'
+          value: jwtIssuer
+        }
+        {
+          name: 'Jwt__Audience'
+          value: jwtAudience
+        }
+        {
+          name: 'Jwt__ExpiryMinutes'
+          value: string(jwtExpiryMinutes)
+        }
+        {
+          name: 'IoTHub__EventHubConnectionString'
+          value: iotEventHubConnectionString
+        }
+        {
+          name: 'IoTHub__ConsumerGroup'
+          value: iotConsumerGroup
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsights.properties.ConnectionString
+        }
+        {
+          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+          value: appInsights.properties.InstrumentationKey
+        }
+        {
+          name: 'Mailtrap__ApiToken'
+          value: mailtrapApiToken
+        }
+        {
+          name: 'Mailtrap__InboxId'
+          value: mailtrapInboxId
+        }
       ]
       connectionStrings: [
         {
           name: 'DefaultConnection'
           connectionString: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDbName};Persist Security Info=False;User ID=${sqlAdminUsername};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
           type: 'SQLAzure'
-        }
-        {
-          name: 'IoTHub'
-          connectionString: 'HostName=${iotHub.properties.hostName};SharedAccessKeyName=owner;SharedAccessKey=${iotHub.listkeys().value[0].primaryKey}'
-          type: 'Custom'
         }
       ]
     }
@@ -158,9 +237,8 @@ output appServiceUrl string = 'https://${appService.properties.defaultHostName}'
 output sqlServerName string = sqlServer.properties.fullyQualifiedDomainName
 output sqlDatabaseName string = sqlDatabase.name
 output resourceGroupName string = resourceGroup().name
+output appInsightsName string = appInsights.name
 
 // Connection strings for App Service configuration (secure outputs)
 @secure()
 output sqlConnectionString string = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabase.name};Persist Security Info=False;User ID=${sqlAdminUsername};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
-@secure()
-output iotHubEventHubConnectionString string = 'Endpoint=${iotHub.properties.eventHubEndpoints.events.endpoint};SharedAccessKeyName=service;SharedAccessKey=${listKeys(resourceId('Microsoft.Devices/IotHubs/IotHubKeys', iotHub.name, 'service'), iotHub.apiVersion).primaryKey};EntityPath=${iotHub.properties.eventHubEndpoints.events.path}'

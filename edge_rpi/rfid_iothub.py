@@ -78,6 +78,26 @@ try:
             "deviceId": "rpi-scanner-01",
             "rfidUid": tag_text,
             "tagText": tag_text,
+    "SharedAccessKey=KEY"
+)
+# ========== RFID ==========
+reader = SimpleMFRC522()
+
+print("RFID scanner started. Press Ctrl+C to exit.")
+
+# 🔑 CREATE CLIENT (NO 'with')
+device_client = IoTHubDeviceClient.create_from_connection_string(CONNECTION_STRING)
+device_client.connect()
+
+try:
+    while True:
+        print("Waiting for RFID tag...")
+        tag_id, text = reader.read()
+
+        payload = {
+            "deviceId": "rpi-scanner-01",
+            "rfidTagId": str(tag_id),
+            "tagText": text.strip() if text else "",
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
@@ -93,6 +113,8 @@ try:
         except Exception as e:
             print("Error sending to IoT Hub:", e)
             set_led("red")  # red on send failure
+        device_client.send_message(message)
+        print("Sent to IoT Hub:", payload)
 
         time.sleep(2)
 
@@ -107,3 +129,4 @@ finally:
         except:
             pass
 
+    device_client.disconnect()

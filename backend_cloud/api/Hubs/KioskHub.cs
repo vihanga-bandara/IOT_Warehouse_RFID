@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
+using RfidWarehouseApi.Constants;
+using RfidWarehouseApi.Extensions;
 
 namespace RfidWarehouseApi.Hubs;
 
@@ -15,11 +17,9 @@ public class KioskHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        var userId = Context.User?.FindFirst("UserId")?.Value;
-        if (!string.IsNullOrEmpty(userId))
+        if (Context.User.TryGetUserId(out var userId))
         {
-            // Add user to their personal group
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId}");
+            await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.User(userId.ToString()));
             _logger.LogInformation("User {UserId} connected to SignalR hub. ConnectionId: {ConnectionId}", userId, Context.ConnectionId);
         }
         await base.OnConnectedAsync();
@@ -27,10 +27,9 @@ public class KioskHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var userId = Context.User?.FindFirst("UserId")?.Value;
-        if (!string.IsNullOrEmpty(userId))
+        if (Context.User.TryGetUserId(out var userId))
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user_{userId}");
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.User(userId.ToString()));
             _logger.LogInformation("User {UserId} disconnected from SignalR hub. ConnectionId: {ConnectionId}", userId, Context.ConnectionId);
         }
         await base.OnDisconnectedAsync(exception);
@@ -39,20 +38,19 @@ public class KioskHub : Hub
     // Client can send ping to keep connection alive
     public async Task Ping()
     {
-        await Clients.Caller.SendAsync("Pong");
+        await Clients.Caller.SendAsync(HubEvents.Pong);
     }
 
     // Browser session joins a scanner-specific group so it can receive
     // cart updates for the bound physical scanner device.
     public async Task JoinScannerGroup(string deviceId)
     {
-        var userId = Context.User?.FindFirst("UserId")?.Value;
-        if (string.IsNullOrWhiteSpace(deviceId) || string.IsNullOrWhiteSpace(userId))
+        if (string.IsNullOrWhiteSpace(deviceId) || !Context.User.TryGetUserId(out var userId))
         {
             return;
         }
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"scanner_{deviceId}");
+        await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.Scanner(deviceId));
         _logger.LogInformation("User {UserId} joined scanner group {DeviceId}", userId, deviceId);
     }
 }

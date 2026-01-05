@@ -11,6 +11,7 @@ on:
     paths:
       - 'backend_cloud/iac/**'
       - '.github/workflows/deploy-infra.yml'
+  workflow_dispatch:
 
 permissions:
   id-token: write  # required for OIDC login
@@ -22,43 +23,27 @@ env:
   BICEP_FILE: backend_cloud/iac/main.bicep
   SQL_ADMIN_USERNAME: ${{ secrets.SQL_ADMIN_USERNAME }}
   SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+  JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+  IOT_EVENTHUB_CONNECTION_STRING: ${{ secrets.IOT_EVENTHUB_CONNECTION_STRING }}
 
 jobs:
-  what-if:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Az login (OIDC)
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Ensure resource group exists
-        uses: azure/cli@v1
-        with:
-          inlineScript: |
-            az group create --name "$AZURE_RESOURCE_GROUP" --location "$AZURE_LOCATION"
-
-      - name: What-if deployment
-        uses: azure/cli@v1
-        with:
-          inlineScript: |
-            az deployment group what-if \
-              --resource-group "$AZURE_RESOURCE_GROUP" \
-              --template-file "$BICEP_FILE" \
-              --parameters location="$AZURE_LOCATION" sqlAdminUsername="$SQL_ADMIN_USERNAME" sqlAdminPassword="$SQL_ADMIN_PASSWORD"
-
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          if [ -z "${{ secrets.SQL_ADMIN_USERNAME }}" ]; then echo 'Missing required secret: SQL_ADMIN_USERNAME'; missing=1; fi
+          if [ -z "${{ secrets.SQL_ADMIN_PASSWORD }}" ]; then echo 'Missing required secret: SQL_ADMIN_PASSWORD'; missing=1; fi
+          if [ -z "${{ secrets.JWT_SECRET_KEY }}" ]; then echo 'Missing required secret: JWT_SECRET_KEY'; missing=1; fi
+          if [ -z "${{ secrets.IOT_EVENTHUB_CONNECTION_STRING }}" ]; then echo 'Missing required secret: IOT_EVENTHUB_CONNECTION_STRING'; missing=1; fi
+          if [ "$missing" -ne 0 ]; then exit 1; fi
 
       - name: Az login (OIDC)
         uses: azure/login@v1
@@ -75,9 +60,20 @@ jobs:
 
       - name: Deploy Bicep
         uses: azure/cli@v1
+        env:
+          MAILTRAP_API_TOKEN: ${{ secrets.MAILTRAP_API_TOKEN }}
+          MAILTRAP_INBOX_ID: ${{ vars.MAILTRAP_INBOX_ID }}
         with:
           inlineScript: |
             az deployment group create \
               --resource-group "$AZURE_RESOURCE_GROUP" \
+              --name main \
               --template-file "$BICEP_FILE" \
-              --parameters location="$AZURE_LOCATION" sqlAdminUsername="$SQL_ADMIN_USERNAME" sqlAdminPassword="$SQL_ADMIN_PASSWORD"
+              --parameters \
+                location="$AZURE_LOCATION" \
+                sqlAdminUsername="$SQL_ADMIN_USERNAME" \
+                sqlAdminPassword="$SQL_ADMIN_PASSWORD" \
+                jwtSecretKey="$JWT_SECRET_KEY" \
+                iotEventHubConnectionString="$IOT_EVENTHUB_CONNECTION_STRING" \
+                mailtrapApiToken="${MAILTRAP_API_TOKEN:-}" \
+                mailtrapInboxId="${MAILTRAP_INBOX_ID:-0}"

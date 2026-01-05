@@ -52,7 +52,7 @@
             </div>
           </div>
 
-          <div class="summary-card surface-card surface-card--compact borrowed">
+          <div class="summary-card surface-card surface-card--compact borrowed clickable" @click="openBorrowedModal">
             <div class="summary-icon">
               <svg
                 width="24"
@@ -71,6 +71,7 @@
             <div class="summary-content">
               <div class="summary-label">Borrowed</div>
               <div class="summary-number">{{ borrowedItems.length }}</div>
+              <div class="summary-hint">Click to view details</div>
             </div>
           </div>
 
@@ -150,6 +151,97 @@
         </div>
       </div>
     </div>
+
+    <!-- Borrowed Items Modal -->
+    <transition name="modal-fade">
+      <div v-if="showBorrowedModal" class="modal-overlay" @click="closeBorrowedModal">
+        <div class="borrowed-modal form-modal" @click.stop>
+          <button class="modal-close" @click="closeBorrowedModal" aria-label="Close">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          
+          <h2>Borrowed Items</h2>
+          <p class="modal-subtitle">View all currently borrowed items and manage overdue reminders</p>
+
+          <div v-if="borrowedModalMessage" class="form-message" :class="borrowedModalMessageType">
+            {{ borrowedModalMessage }}
+          </div>
+
+          <div v-if="borrowedDetailsLoading" class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading borrowed items...</p>
+          </div>
+
+          <div v-else-if="borrowedDetails.length === 0" class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <p>No items currently borrowed</p>
+          </div>
+
+          <div v-else class="borrowed-items-list">
+            <div 
+              v-for="item in borrowedDetails" 
+              :key="item.itemId" 
+              class="borrowed-item-card"
+              :class="{ 'is-overdue': item.isOverdue }"
+            >
+              <div class="item-info">
+                <div class="item-header">
+                  <h4>{{ item.itemName }}</h4>
+                  <span v-if="item.isOverdue" class="overdue-badge">
+                    Overdue {{ item.daysOverdue }} day{{ item.daysOverdue > 1 ? 's' : '' }}
+                  </span>
+                </div>
+                <div class="item-meta">
+                  <div class="meta-row">
+                    <span class="meta-label">Holder:</span>
+                    <span class="meta-value">{{ item.holderName }}</span>
+                  </div>
+                  <div class="meta-row">
+                    <span class="meta-label">Email:</span>
+                    <span class="meta-value">{{ item.holderEmail }}</span>
+                  </div>
+                  <div class="meta-row">
+                    <span class="meta-label">Borrowed:</span>
+                    <span class="meta-value">{{ formatDate(item.borrowedAt) }} ({{ item.daysBorrowed }} day{{ item.daysBorrowed !== 1 ? 's' : '' }} ago)</span>
+                  </div>
+                  <div v-if="item.reminderSent" class="meta-row reminder-sent">
+                    <span class="meta-label">Reminder Sent:</span>
+                    <span class="meta-value">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      {{ formatDate(item.reminderSentAt) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="item-actions">
+                <button 
+                  class="btn btn-send-reminder"
+                  :class="{ 'btn-resend': item.reminderSent }"
+                  @click="sendReminder(item)"
+                  :disabled="sendingReminder === item.itemId"
+                >
+                  <svg v-if="sendingReminder !== item.itemId" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  <span v-if="sendingReminder === item.itemId">Sending...</span>
+                  <span v-else-if="item.reminderSent">Resend Reminder</span>
+                  <span v-else>Send Reminder</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
   </AdminShell>
 </template>
 
@@ -171,6 +263,14 @@ export default {
     const loading = ref(true)
     const transactions = ref([])
     const showKioskHint = ref(route.query.kioskBlocked === '1')
+    
+    // Borrowed modal state
+    const showBorrowedModal = ref(false)
+    const borrowedDetails = ref([])
+    const borrowedDetailsLoading = ref(false)
+    const sendingReminder = ref(null)
+    const borrowedModalMessage = ref('')
+    const borrowedModalMessageType = ref('')
 
     const latestActionByItem = computed(() => {
       const map = new Map()
@@ -259,6 +359,53 @@ export default {
       }
     }
 
+    const openBorrowedModal = async () => {
+      showBorrowedModal.value = true
+      borrowedDetailsLoading.value = true
+      borrowedModalMessage.value = ''
+      borrowedModalMessageType.value = ''
+      try {
+        const response = await api.get('/items/borrowed')
+        borrowedDetails.value = response.data
+      } catch (err) {
+        console.error('Failed to fetch borrowed items details:', err)
+        borrowedDetails.value = []
+      } finally {
+        borrowedDetailsLoading.value = false
+      }
+    }
+
+    const closeBorrowedModal = () => {
+      showBorrowedModal.value = false
+      borrowedDetails.value = []
+      borrowedModalMessage.value = ''
+      borrowedModalMessageType.value = ''
+    }
+
+    const sendReminder = async (item) => {
+      if (sendingReminder.value) return
+      sendingReminder.value = item.itemId
+      borrowedModalMessage.value = ''
+      borrowedModalMessageType.value = ''
+      try {
+        await api.post(`/items/${item.itemId}/send-reminder`)
+        // Update the item in the list
+        const idx = borrowedDetails.value.findIndex(i => i.itemId === item.itemId)
+        if (idx !== -1) {
+          borrowedDetails.value[idx].reminderSent = true
+          borrowedDetails.value[idx].reminderSentAt = new Date().toISOString()
+        }
+        borrowedModalMessageType.value = 'success'
+        borrowedModalMessage.value = `Reminder sent successfully to ${item.holderEmail}.`
+      } catch (err) {
+        console.error('Failed to send reminder:', err)
+        borrowedModalMessageType.value = 'error'
+        borrowedModalMessage.value = 'Failed to send reminder email. Please try again.'
+      } finally {
+        sendingReminder.value = null
+      }
+    }
+
     onMounted(async () => {
       loading.value = true
       await Promise.all([fetchItems(), fetchTransactions()])
@@ -273,7 +420,17 @@ export default {
       availableItems,
       formatDate,
       showKioskHint,
-      dismissKioskHint
+      dismissKioskHint,
+      // Borrowed modal
+      showBorrowedModal,
+      borrowedDetails,
+      borrowedDetailsLoading,
+      sendingReminder,
+      borrowedModalMessage,
+      borrowedModalMessageType,
+      openBorrowedModal,
+      closeBorrowedModal,
+      sendReminder
     }
   }
 }
@@ -365,6 +522,19 @@ export default {
 }
 
 .summary-grid {
+
+.form-message {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.9rem;
+}
+
+.form-message.error {
+  color: var(--color-error);
+}
+
+.form-message.success {
+  color: var(--color-success);
+}
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.5rem;
@@ -622,6 +792,259 @@ export default {
 @media (max-width: 600px) {
   .items-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Clickable summary card */
+.summary-card.clickable {
+  cursor: pointer;
+}
+
+.summary-card.clickable:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg), 0 0 0 2px var(--primary-light);
+}
+
+.summary-hint {
+  font-size: 0.7rem;
+  color: var(--accent-gray);
+  margin-top: 0.25rem;
+  opacity: 0.8;
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.borrowed-modal {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 800px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: var(--shadow-lg);
+}
+
+.borrowed-modal h2 {
+  margin: 0 0 0.5rem;
+  color: var(--primary-dark);
+  font-size: 1.5rem;
+}
+
+.modal-subtitle {
+  color: var(--accent-gray);
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--accent-gray);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: var(--bg-light);
+  color: var(--primary-dark);
+}
+
+.borrowed-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.borrowed-item-card {
+  background: var(--bg-light);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  transition: all 0.2s ease;
+}
+
+.borrowed-item-card:hover {
+  border-color: var(--primary-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.borrowed-item-card.is-overdue {
+  border-left: 4px solid #ff6b6b;
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.05) 0%, var(--bg-light) 100%);
+}
+
+.item-info {
+  flex: 1;
+}
+
+.item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.item-header h4 {
+  margin: 0;
+  color: var(--primary-dark);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.overdue-badge {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);
+  color: white;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.item-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.meta-row {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.meta-label {
+  color: var(--accent-gray);
+  font-weight: 600;
+  min-width: 100px;
+}
+
+.meta-value {
+  color: var(--text-primary);
+}
+
+.meta-row.reminder-sent .meta-value {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--accent-green);
+}
+
+.item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.btn-send-reminder {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-send-reminder:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 61, 107, 0.3);
+}
+
+.btn-send-reminder:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-send-reminder.btn-resend {
+  background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+}
+
+.btn-send-reminder.btn-resend:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+/* Modal transitions */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-active .borrowed-modal,
+.modal-fade-leave-active .borrowed-modal {
+  transition: transform 0.3s ease;
+}
+
+.modal-fade-enter-from .borrowed-modal,
+.modal-fade-leave-to .borrowed-modal {
+  transform: scale(0.95) translateY(20px);
+}
+
+/* Loading and empty states in modal */
+.borrowed-modal .loading-state,
+.borrowed-modal .empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--accent-gray);
+}
+
+.borrowed-modal .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-light);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@media (max-width: 600px) {
+  .borrowed-item-card {
+    flex-direction: column;
+  }
+  
+  .item-actions {
+    width: 100%;
+  }
+  
+  .btn-send-reminder {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>
