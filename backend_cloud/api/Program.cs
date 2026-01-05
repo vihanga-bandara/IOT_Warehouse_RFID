@@ -74,6 +74,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<ICheckoutSessionManager, CheckoutSessionManager>();
 builder.Services.AddSingleton<IScannerSessionService, ScannerSessionService>();
+builder.Services.AddSingleton<IScannerConnectionTracker, ScannerConnectionTracker>();
 builder.Services.AddHttpClient<IEmailService, EmailService>();
 
 // Register background services

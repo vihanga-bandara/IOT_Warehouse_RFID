@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
 using RfidWarehouseApi.Constants;
 using RfidWarehouseApi.Extensions;
+using RfidWarehouseApi.Services;
 
 namespace RfidWarehouseApi.Hubs;
 
@@ -9,10 +10,12 @@ namespace RfidWarehouseApi.Hubs;
 public class KioskHub : Hub
 {
     private readonly ILogger<KioskHub> _logger;
+    private readonly IScannerConnectionTracker _scannerConnectionTracker;
 
-    public KioskHub(ILogger<KioskHub> logger)
+    public KioskHub(ILogger<KioskHub> logger, IScannerConnectionTracker scannerConnectionTracker)
     {
         _logger = logger;
+        _scannerConnectionTracker = scannerConnectionTracker;
     }
 
     public override async Task OnConnectedAsync()
@@ -27,6 +30,8 @@ public class KioskHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        _scannerConnectionTracker.TrackDisconnect(Context.ConnectionId);
+
         if (Context.User.TryGetUserId(out var userId))
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.User(userId.ToString()));
@@ -51,6 +56,7 @@ public class KioskHub : Hub
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.Scanner(deviceId));
+        _scannerConnectionTracker.TrackJoin(deviceId, Context.ConnectionId, userId);
         _logger.LogInformation("User {UserId} joined scanner group {DeviceId}", userId, deviceId);
     }
 }
