@@ -25,13 +25,12 @@ def set_led(color):
 
 # ========== RFID ==========
 reader = SimpleMFRC522()
-AUTHORIZED_TAGS = ["RFID001234567891", "RFID001234567892"]
 
 # ========== Azure IoT Hub ==========
 CONNECTION_STRING = (
     "HostName=rfid-warehouse-dev-iothub-26phf7ltazvva.azure-devices.net;"
     "DeviceId=rpi-scanner-01;"
-    "SharedAccessKey=KEY"
+    "SharedAccessKey=I+ISqEmUuS88NeCw3WrXSk5RiDjqXtxkTkDIJXre5ls="
 )
 
 device_client = None
@@ -50,25 +49,18 @@ def has_internet():
 
 try:
     while True:
-        # Check internet first
+        # Always check internet at the start of each loop
         if not has_internet():
             print("No internet connection!")
             set_led("red")
             time.sleep(2)
-            continue
+            continue  # skip scanning until internet returns
 
         # Internet is available → show blue while waiting for scan
         set_led("blue")
         print("Waiting for RFID tag...")
         tag_id, text = reader.read()
         tag_text = text.strip() if text else ""
-
-        # RED: Unauthorized tag
-        if tag_text not in AUTHORIZED_TAGS:
-            print(f"Unauthorized tag detected: {tag_text}")
-            set_led("red")
-            time.sleep(2)
-            continue
 
         # Connect to IoT Hub if not already connected
         if device_client is None:
@@ -81,7 +73,7 @@ try:
                 time.sleep(2)
                 continue
 
-        # Send payload
+        # Prepare payload exactly like before
         payload = {
             "deviceId": "rpi-scanner-01",
             "rfidUid": tag_text,
@@ -93,14 +85,14 @@ try:
         message.content_type = "application/json"
         message.content_encoding = "utf-8"
 
+        # Try sending → red LED on failure
         try:
             device_client.send_message(message)
             print("Sent to IoT Hub:", payload)
-            set_led("green")
+            set_led("green")  # green on success
         except Exception as e:
             print("Error sending to IoT Hub:", e)
-            set_led("red")
-            time.sleep(2)
+            set_led("red")  # red on send failure
 
         time.sleep(2)
 
