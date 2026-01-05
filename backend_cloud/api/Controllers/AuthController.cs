@@ -71,9 +71,6 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Login using RFID card UID (for kiosk RFID-based authentication)
-    /// </summary>
     [HttpPost("login/rfid")]
     public async Task<IActionResult> LoginWithRfid([FromBody] RfidLoginDto loginDto)
     {
@@ -260,10 +257,6 @@ public class AuthController : ControllerBase
         return Ok(transactions);
     }
 
-    /// <summary>
-    /// Validate and bind a scanner to the current user session.
-    /// Called after login to select which scanner/kiosk to use.
-    /// </summary>
     [HttpPost("bind-scanner")]
     [Authorize]
     public async Task<IActionResult> BindScanner([FromBody] BindScannerDto dto)

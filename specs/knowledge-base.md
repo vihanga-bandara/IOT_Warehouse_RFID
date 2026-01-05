@@ -24,15 +24,17 @@
 - **Database:** SQL Server (Azure)
 - **Authentication:** JWT Bearer tokens, BCrypt password hashing
 - **Real-time:** SignalR hub for Kiosk
-- **Controllers:** Auth, Items, Session, Transaction
+- **Controllers:** Auth, Items, Session, Transaction, Scanners
 - **Database Tables:** Users, Items, Transactions, Scanners
 - **Deployment:** Azure App Service (Free Tier)
 - **API Port:** 5218 (dev), 80 (prod)
-- **SignalR Hub:** `/hubs/kiosk`
+- **SignalR Hubs:** `/hubs/kiosk` (authenticated), `/hubs/login` (unauthenticated for RFID login flow)
+- **Session Gating:** RFID scans only add to cart when a user has an active kiosk dashboard session
 
 ### Auth behavior
 - **Admin** can log in without a scanner.
 - **Non-admin users must provide `scannerName` at login** (scanner is required for kiosk binding).
+- Scans are ignored unless user has an active kiosk dashboard session connected to that scanner.
 
 ## Database
 - **Type:** Azure SQL Database (Basic tier)
@@ -82,11 +84,12 @@ Notes:
 ## API Endpoints (Backend)
 - **Base URL (Azure):** From App Service output (see Azure Portal or Bicep outputs)
 - **Base URL (Local Dev):** http://localhost:5218
-- **Auth:** /api/auth/register, /api/auth/login
+- **Auth:** /api/auth/register, /api/auth/login, /api/auth/bind-scanner
 - **Items:** /api/items
-- **Transactions:** /api/transactions
-- **Sessions:** /api/sessions
-- **SignalR Hub:** /hubs/kiosk
+- **Transactions:** /api/transaction
+- **Sessions:** /api/session
+- **Scanners:** /api/scanners (admin only)
+- **SignalR Hubs:** /hubs/kiosk, /hubs/login
 
 ## File Structure
 - **frontend_web/**: Vue app (src/, styles/, components/, composables/, services/)

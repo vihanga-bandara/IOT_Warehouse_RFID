@@ -9,13 +9,7 @@ public interface IScannerConnectionTracker
     bool IsUserActiveOnScanner(string deviceId, int userId);
 }
 
-/// <summary>
-/// Tracks which authenticated SignalR kiosk dashboard connections are currently
-/// joined to which scanner groups.
-///
-/// This is used to ensure we only accept RFID scan -> cart mutations when there
-/// is an active kiosk dashboard session for that scanner.
-/// </summary>
+// Tracks active kiosk SignalR connections per scanner
 public class ScannerConnectionTracker : IScannerConnectionTracker
 {
     // deviceId -> (connectionId -> userId)
