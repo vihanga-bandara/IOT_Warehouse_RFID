@@ -19,6 +19,7 @@ public class IoTHubListenerService : BackgroundService
     private readonly IHubContext<LoginHub> _loginHubContext;
     private readonly ICheckoutSessionManager _sessionManager;
     private readonly IScannerSessionService _scannerSessionService;
+    private readonly IScannerConnectionTracker _scannerConnectionTracker;
     private readonly ILogger<IoTHubListenerService> _logger;
     private readonly IConfiguration _configuration;
     private EventHubConsumerClient? _consumerClient;
@@ -34,6 +35,7 @@ public class IoTHubListenerService : BackgroundService
         IHubContext<LoginHub> loginHubContext,
         ICheckoutSessionManager sessionManager,
         IScannerSessionService scannerSessionService,
+        IScannerConnectionTracker scannerConnectionTracker,
         ILogger<IoTHubListenerService> logger,
         IConfiguration configuration)
     {
@@ -42,6 +44,7 @@ public class IoTHubListenerService : BackgroundService
         _loginHubContext = loginHubContext;
         _sessionManager = sessionManager;
         _scannerSessionService = scannerSessionService;
+        _scannerConnectionTracker = scannerConnectionTracker;
         _logger = logger;
         _configuration = configuration;
     }
@@ -277,6 +280,17 @@ public class IoTHubListenerService : BackgroundService
             }
 
             var userId = activeUserId.Value;
+
+            // Critical guard: only accept scans when the authenticated kiosk dashboard
+            // is actually connected and joined to this scanner group.
+            if (!_scannerConnectionTracker.IsUserActiveOnScanner(deviceId, userId))
+            {
+                _logger.LogInformation(
+                    "RFID scan ignored because no active kiosk dashboard session is connected for scanner {DeviceId} and user {UserId}",
+                    deviceId,
+                    userId);
+                return;
+            }
 
             string action;
 
