@@ -281,8 +281,7 @@ public class IoTHubListenerService : BackgroundService
 
             var userId = activeUserId.Value;
 
-            // Critical guard: only accept scans when the authenticated kiosk dashboard
-            // is actually connected and joined to this scanner group.
+            // Only accept scans when the user has an active kiosk session
             if (!_scannerConnectionTracker.IsUserActiveOnScanner(deviceId, userId))
             {
                 _logger.LogInformation(

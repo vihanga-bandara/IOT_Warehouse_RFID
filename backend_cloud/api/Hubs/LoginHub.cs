@@ -3,11 +3,7 @@ using RfidWarehouseApi.Constants;
 
 namespace RfidWarehouseApi.Hubs;
 
-/// <summary>
-/// SignalR hub for unauthenticated clients waiting for RFID login.
-/// This hub does NOT require authentication so the login page can listen
-/// for RfidLoginSuccess events before the user is authenticated.
-/// </summary>
+// Unauthenticated hub for RFID login flow
 public class LoginHub : Hub
 {
     private readonly ILogger<LoginHub> _logger;
@@ -29,10 +25,7 @@ public class LoginHub : Hub
         await base.OnDisconnectedAsync(exception);
     }
 
-    /// <summary>
-    /// Join a scanner-specific group to receive RFID login events for that scanner.
-    /// This allows the login page to wait for a user to tap their RFID card.
-    /// </summary>
+    // Join scanner group to listen for RFID login events
     public async Task JoinScannerLoginGroup(string scannerName)
     {
         if (string.IsNullOrWhiteSpace(scannerName))
@@ -48,9 +41,6 @@ public class LoginHub : Hub
             scannerName, Context.ConnectionId);
     }
 
-    /// <summary>
-    /// Join a scanner group using device ID directly
-    /// </summary>
     public async Task JoinScannerGroupByDeviceId(string deviceId)
     {
         if (string.IsNullOrWhiteSpace(deviceId))
@@ -64,9 +54,6 @@ public class LoginHub : Hub
             deviceId, Context.ConnectionId);
     }
 
-    /// <summary>
-    /// Ping to keep connection alive
-    /// </summary>
     public async Task Ping()
     {
         await Clients.Caller.SendAsync(HubEvents.Pong);

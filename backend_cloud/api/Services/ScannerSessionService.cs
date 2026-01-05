@@ -36,8 +36,7 @@ public class ScannerSessionService : IScannerSessionService
 
         var normalized = scannerName.Trim().ToLower();
 
-        // Allow binding by either human-friendly Name (typical) or DeviceId (useful for ops/testing)
-        // so the kiosk can be bound using the same identifier as the IoT Hub device.
+        // Lookup by name or deviceId for flexibility
         var scanner = await context.Scanners.FirstOrDefaultAsync(s =>
             (s.Name != null && s.Name.ToLower() == normalized) ||
             s.DeviceId.ToLower() == normalized);
