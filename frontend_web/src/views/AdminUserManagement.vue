@@ -110,6 +110,46 @@
                 <p class="roles-hint">Select one or both roles. At least one role is required.</p>
               </div>
 
+              <div class="form-group">
+                <label for="rfid-uid">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                    <path d="M2 10h20"/>
+                  </svg>
+                  RFID Login Card ID (Optional)
+                </label>
+                <div class="rfid-input-wrapper">
+                  <input
+                    id="rfid-uid"
+                    v-model="newUser.rfidTagUid"
+                    type="text"
+                    placeholder="Click Generate to create ID"
+                    class="form-input"
+                    readonly
+                  />
+                  <button type="button" class="rfid-generate-btn" @click="generateNewRfidUid" :disabled="generatingRfid">
+                    <svg v-if="!generatingRfid" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                    <span v-else class="spinner-small"></span>
+                    {{ generatingRfid ? '' : 'Generate' }}
+                  </button>
+                  <button 
+                    type="button" 
+                    class="rfid-clear-btn" 
+                    @click="newUser.rfidTagUid = ''" 
+                    v-if="newUser.rfidTagUid"
+                    title="Clear RFID ID"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+                <p class="rfid-hint">This ID will be written to an RFID card for badge login.</p>
+              </div>
+
               <div class="form-buttons">
                 <button type="submit" class="button-primary">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -221,6 +261,40 @@
                 <span v-if="errors.roles" class="error-message">{{ errors.roles }}</span>
               </div>
 
+              <div class="form-group">
+                <label for="edit-rfid-uid">RFID Login Card ID (Optional)</label>
+                <div class="rfid-input-wrapper">
+                  <input
+                    id="edit-rfid-uid"
+                    v-model="editForm.rfidTagUid"
+                    type="text"
+                    placeholder="Click Generate to create ID"
+                    class="form-input"
+                    readonly
+                  />
+                  <button type="button" class="rfid-generate-btn" @click="generateEditRfidUid" :disabled="generatingRfid">
+                    <svg v-if="!generatingRfid" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                    <span v-else class="spinner-small"></span>
+                    {{ generatingRfid ? '' : (editForm.rfidTagUid ? 'Regenerate' : 'Generate') }}
+                  </button>
+                  <button 
+                    type="button" 
+                    class="rfid-clear-btn" 
+                    @click="editForm.rfidTagUid = ''" 
+                    v-if="editForm.rfidTagUid"
+                    title="Clear RFID ID"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+                <p class="rfid-hint">This ID will be written to an RFID card for badge login.</p>
+              </div>
+
               <div class="form-buttons">
                 <button type="submit" class="btn btn-primary">Update User</button>
                 <button type="button" @click="showEditForm = false" class="btn btn-secondary">Cancel</button>
@@ -260,8 +334,12 @@
           </div>
         </div>
 
+        <div class="results-info">
+          Showing {{ paginatedUsers.length }} of {{ filteredUsers.length }} user<span v-if="filteredUsers.length !== 1">s</span>
+        </div>
+
         <div class="users-grid">
-          <div v-for="user in filteredUsers" :key="user.id" class="user-card">
+          <div v-for="user in paginatedUsers" :key="user.id" class="user-card">
             <div class="user-badges">
               <span 
                 v-for="role in (user.roles || [])" 
@@ -308,6 +386,62 @@
               </button>
             </div>
           </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-controls" v-if="totalPages > 1">
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === 1"
+            @click="currentPage = 1"
+            title="First page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>
+            </svg>
+          </button>
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === 1"
+            @click="currentPage--"
+            title="Previous page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          
+          <div class="pagination-info">
+            Page {{ currentPage }} of {{ totalPages }}
+          </div>
+          
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === totalPages"
+            @click="currentPage++"
+            title="Next page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === totalPages"
+            @click="currentPage = totalPages"
+            title="Last page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/>
+            </svg>
+          </button>
+          
+          <select v-model="itemsPerPage" class="page-size-select">
+            <option :value="10">10 / page</option>
+            <option :value="25">25 / page</option>
+            <option :value="50">50 / page</option>
+            <option :value="100">100 / page</option>
+          </select>
         </div>
 
         <div v-if="!loading && users.length === 0" class="empty-state">
@@ -417,18 +551,23 @@ export default {
       }
     ])
     const selectedRoleIds = ref([2])
+    const generatingRfid = ref(false)
+    const currentPage = ref(1)
+    const itemsPerPage = ref(25)
     const newUser = ref({
       email: '',
       password: '',
       name: '',
-      lastname: ''
+      lastname: '',
+      rfidTagUid: ''
     })
     const editForm = ref({
       email: '',
       name: '',
       lastname: '',
       roleIds: [],
-      newPassword: ''
+      newPassword: '',
+      rfidTagUid: ''
     })
     const errors = ref({})
 
@@ -476,6 +615,14 @@ export default {
       })
     })
 
+    const totalPages = computed(() => Math.ceil(filteredUsers.value.length / itemsPerPage.value) || 1)
+    
+    const paginatedUsers = computed(() => {
+      const start = (currentPage.value - 1) * itemsPerPage.value
+      const end = start + itemsPerPage.value
+      return filteredUsers.value.slice(start, end)
+    })
+
     const registerUser = async () => {
       try {
         if (!selectedRoleIds.value.length) {
@@ -487,12 +634,36 @@ export default {
           roleIds: selectedRoleIds.value
         })
 
-        newUser.value = { email: '', password: '', name: '', lastname: '' }
+        newUser.value = { email: '', password: '', name: '', lastname: '', rfidTagUid: '' }
         selectedRoleIds.value = [2]
         showRegisterForm.value = false
         fetchUsers()
       } catch (err) {
         console.error('Registration failed:', err)
+      }
+    }
+
+    const generateNewRfidUid = async () => {
+      try {
+        generatingRfid.value = true
+        const response = await api.get('/auth/generate-rfid-uid')
+        newUser.value.rfidTagUid = response.data.rfidUid
+      } catch (err) {
+        console.error('Failed to generate RFID UID:', err)
+      } finally {
+        generatingRfid.value = false
+      }
+    }
+
+    const generateEditRfidUid = async () => {
+      try {
+        generatingRfid.value = true
+        const response = await api.get('/auth/generate-rfid-uid')
+        editForm.value.rfidTagUid = response.data.rfidUid
+      } catch (err) {
+        console.error('Failed to generate RFID UID:', err)
+      } finally {
+        generatingRfid.value = false
       }
     }
 
@@ -503,7 +674,8 @@ export default {
         name: user.name,
         lastname: user.lastname,
         roleIds: (user.roles || []).map(r => r.id),
-        newPassword: ''
+        newPassword: '',
+        rfidTagUid: user.rfidUid || ''
       }
       errors.value = {}
       showEditForm.value = true
@@ -610,9 +782,16 @@ export default {
       newUser,
       editForm,
       errors,
+      generatingRfid,
       registerUser,
       openEditUser,
       updateUser,
+      generateNewRfidUid,
+      generateEditRfidUid,
+      paginatedUsers,
+      currentPage,
+      itemsPerPage,
+      totalPages,
       actionLabel,
       actionClass,
       viewUserTransactions,
@@ -846,6 +1025,85 @@ export default {
 .password-toggle svg {
   width: 18px;
   height: 18px;
+}
+
+.rfid-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rfid-input-wrapper .form-input {
+  flex: 1;
+  background: var(--background-tertiary);
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+.rfid-generate-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.rfid-generate-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.3);
+}
+
+.rfid-generate-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.rfid-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem;
+  background: var(--background-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: all 0.2s ease;
+}
+
+.rfid-clear-btn:hover {
+  background: var(--danger-light);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.rfid-hint {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 600px) {
@@ -1635,6 +1893,83 @@ export default {
 
   .form-buttons {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Pagination Controls */
+.results-info {
+  padding: 0.75rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem 0;
+  margin-top: 1rem;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--primary-light);
+  color: white;
+  border-color: var(--primary-light);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  padding: 0 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.page-size-select {
+  margin-left: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.page-size-select:focus {
+  outline: none;
+  border-color: var(--primary-light);
+}
+
+@media (max-width: 600px) {
+  .pagination-controls {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .page-size-select {
+    margin-left: 0;
+    margin-top: 0.5rem;
   }
 }
 </style>

@@ -11,6 +11,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
 builder.Services.AddControllers();
 
+var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+var appInsightsInstrumentationKey = builder.Configuration["APPINSIGHTS_INSTRUMENTATIONKEY"];
+if (!string.IsNullOrWhiteSpace(appInsightsConnectionString) || !string.IsNullOrWhiteSpace(appInsightsInstrumentationKey))
+{
+    builder.Services.AddApplicationInsightsTelemetry();
+}
+
 // Configure Database
 builder.Services.AddDbContext<WarehouseDbContext>(options =>
     options.UseSqlServer(
@@ -67,9 +74,11 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<ICheckoutSessionManager, CheckoutSessionManager>();
 builder.Services.AddSingleton<IScannerSessionService, ScannerSessionService>();
+builder.Services.AddHttpClient<IEmailService, EmailService>();
 
 // Register background services
 builder.Services.AddHostedService<IoTHubListenerService>();
+builder.Services.AddHostedService<OverdueItemNotificationService>();
 
 // Configure SignalR
 builder.Services.AddSignalR();
@@ -118,6 +127,7 @@ app.MapControllers();
 
 // Map SignalR hubs
 app.MapHub<KioskHub>("/hubs/kiosk");
+app.MapHub<LoginHub>("/hubs/login");
 
 // Fallback to index.html for Vue.js SPA routing
 app.MapFallbackToFile("index.html");

@@ -29,8 +29,33 @@ export const useCartStore = defineStore('cart', () => {
     items.value = []
   }
 
-  const updateFromServer = (serverItems) => {
+  const updateFromServer = (payload) => {
+    // Backend emits a SessionCartDto over SignalR:
+    // { userId, sessionStarted, items: [{ itemId, itemName, action, rfidUid, scannedAt }, ...] }
+    // Normalize it to the frontend item shape used by Kiosk.vue:
+    // { id, name, action, rfidUid, scannedAt }
+
+    const serverItems = Array.isArray(payload)
+      ? payload
+      : (payload && Array.isArray(payload.items) ? payload.items : [])
+
     items.value = serverItems
+      .map((i) => {
+        // Already-normalized items
+        if (i && (i.id !== undefined || i.name !== undefined)) {
+          return i
+        }
+
+        return {
+          id: i?.itemId,
+          name: i?.itemName,
+          action: i?.action,
+          rfidUid: i?.rfidUid,
+          scannedAt: i?.scannedAt
+        }
+      })
+      // Drop any malformed entries
+      .filter((i) => i && i.id !== undefined)
   }
 
   return {

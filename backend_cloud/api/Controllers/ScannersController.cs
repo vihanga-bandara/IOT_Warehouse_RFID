@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RfidWarehouseApi.Constants;
 using RfidWarehouseApi.Data;
 using RfidWarehouseApi.DTOs;
 using RfidWarehouseApi.Models;
@@ -9,7 +10,7 @@ namespace RfidWarehouseApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = Roles.Admin)]
 public class ScannersController : ControllerBase
 {
     private readonly WarehouseDbContext _context;
@@ -32,7 +33,7 @@ public class ScannersController : ControllerBase
             ScannerId = s.ScannerId,
             DeviceId = s.DeviceId,
             Name = s.Name ?? string.Empty,
-            Status = string.IsNullOrWhiteSpace(s.Status) ? "Active" : s.Status!
+            Status = string.IsNullOrWhiteSpace(s.Status) ? ScannerStatuses.Active : s.Status!
         });
 
         return Ok(result);
@@ -66,7 +67,7 @@ public class ScannersController : ControllerBase
         {
             DeviceId = dto.DeviceId,
             Name = dto.Name,
-            Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status!.Trim()
+            Status = string.IsNullOrWhiteSpace(dto.Status) ? ScannerStatuses.Active : dto.Status!.Trim()
         };
 
         _context.Scanners.Add(scanner);
@@ -77,7 +78,7 @@ public class ScannersController : ControllerBase
             ScannerId = scanner.ScannerId,
             DeviceId = scanner.DeviceId,
             Name = scanner.Name ?? string.Empty,
-            Status = scanner.Status ?? "Active"
+            Status = scanner.Status ?? ScannerStatuses.Active
         };
 
         return CreatedAtAction(nameof(GetScanners), new { id = scanner.ScannerId }, result);
@@ -124,9 +125,38 @@ public class ScannersController : ControllerBase
             ScannerId = scanner.ScannerId,
             DeviceId = scanner.DeviceId,
             Name = scanner.Name ?? string.Empty,
-            Status = scanner.Status ?? "Active"
+            Status = scanner.Status ?? ScannerStatuses.Active
         };
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Get scanner info by name (public endpoint for login page)
+    /// </summary>
+    [HttpGet("by-name/{name}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ScannerDto>> GetScannerByName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return BadRequest(new { message = "Scanner name is required" });
+        }
+
+        var scanner = await _context.Scanners
+            .FirstOrDefaultAsync(s => s.Name == name);
+
+        if (scanner == null)
+        {
+            return NotFound(new { message = $"Scanner '{name}' not found" });
+        }
+
+        return Ok(new ScannerDto
+        {
+            ScannerId = scanner.ScannerId,
+            DeviceId = scanner.DeviceId,
+            Name = scanner.Name ?? string.Empty,
+            Status = scanner.Status ?? ScannerStatuses.Active
+        });
     }
 }
