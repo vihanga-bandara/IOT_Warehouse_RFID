@@ -30,7 +30,7 @@ reader = SimpleMFRC522()
 CONNECTION_STRING = (
     "HostName=rfid-warehouse-dev-iothub-26phf7ltazvva.azure-devices.net;"
     "DeviceId=rpi-scanner-01;"
-    "SharedAccessKey=I+ISqEmUuS88NeCw3WrXSk5RiDjqXtxkTkDIJXre5ls="
+    "SharedAccessKey=KEY"
 )
 
 device_client = None
