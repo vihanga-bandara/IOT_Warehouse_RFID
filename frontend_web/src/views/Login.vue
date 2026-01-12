@@ -245,12 +245,20 @@ export default {
       console.log('RFID login success:', data)
       
       // Use setRfidLoginData to store auth data with scanner info
-      // RFID login via IoT Hub already has the scanner bound on the backend
-      authStore.setRfidLoginData(data)
+      // This will check if PIN verification is required
+      const result = authStore.setRfidLoginData(data)
 
-      // Clean up and navigate
+      // Clean up SignalR listeners
       cleanupRfidListeners()
       
+      // Check if PIN verification is required
+      if (result.requiresPinVerification) {
+        console.log('PIN verification required, redirecting to PIN entry')
+        router.push('/verify-pin')
+        return
+      }
+      
+      // No PIN required - proceed with normal login flow
       const hasAdminRole = data.roleIds && data.roleIds.includes(1)
       if (hasAdminRole) {
         router.push('/dashboard')

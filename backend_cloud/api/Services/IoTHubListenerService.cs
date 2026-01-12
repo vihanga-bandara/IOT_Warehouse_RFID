@@ -348,6 +348,7 @@ public class IoTHubListenerService : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<WarehouseDbContext>();
         var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
+        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
 
         try
         {
@@ -374,10 +375,14 @@ public class IoTHubListenerService : BackgroundService
                 return;
             }
 
-            // Try to authenticate user via RFID
-            var authResult = await authService.LoginWithRfidAsync(rfidTagUid, scanner.Name);
+            // Look up user by RFID tag to check if they have a PIN configured
+            var normalizedUid = rfidTagUid.Trim();
+            var withPrefix = $"{RfidPrefixes.UserLogin}{normalizedUid}";
+            var user = await context.Users
+                .Include(u => u.UserRights)
+                .FirstOrDefaultAsync(u => u.RfidTagUid == normalizedUid || u.RfidTagUid == withPrefix);
 
-            if (authResult == null)
+            if (user == null)
             {
                 _logger.LogWarning("RFID login failed: user not found for tag {RfidTagUid}", rfidTagUid);
                 await Task.WhenAll(
@@ -389,12 +394,77 @@ public class IoTHubListenerService : BackgroundService
                 return;
             }
 
+            // Check if user is locked out
+            if (await authService.IsUserLockedOutAsync(user.UserId))
+            {
+                _logger.LogWarning("RFID login blocked: user {Email} is locked out", user.Email);
+                await Task.WhenAll(
+                    _loginHubContext.Clients.Group($"scanner_{deviceId}")
+                        .SendAsync(HubEvents.LoginFailed, new { Error = "Account temporarily locked. Please contact administrator." }),
+                    _kioskHubContext.Clients.Group($"scanner_{deviceId}")
+                        .SendAsync(HubEvents.LoginFailed, new { Error = "Account temporarily locked. Please contact administrator." })
+                );
+                return;
+            }
+
+            var roleIds = user.UserRights.Select(ur => ur.RoleId).ToList();
+
+            // Check if PIN verification is required (user has a PIN set)
+            if (!string.IsNullOrEmpty(user.PinHash))
+            {
+                // Issue an MFA token for PIN verification
+                var mfaToken = tokenService.GenerateMfaToken(user, deviceId, scanner.Name);
+
+                var mfaResponse = new RfidLoginResponseDto
+                {
+                    Success = true,
+                    RequiresPinVerification = true,
+                    MfaToken = mfaToken,
+                    Email = user.Email,
+                    Name = user.Name,
+                    Lastname = user.Lastname,
+                    UserId = user.UserId,
+                    RoleIds = roleIds,
+                    ScannerDeviceId = deviceId,
+                    ScannerName = scanner.Name
+                };
+
+                // Broadcast that PIN verification is required
+                await Task.WhenAll(
+                    _loginHubContext.Clients.Group($"scanner_{deviceId}")
+                        .SendAsync(HubEvents.RfidLoginSuccess, mfaResponse),
+                    _kioskHubContext.Clients.Group($"scanner_{deviceId}")
+                        .SendAsync(HubEvents.RfidLoginSuccess, mfaResponse)
+                );
+
+                _logger.LogInformation(
+                    "RFID scan successful for user {Email} (UserId={UserId}) - PIN verification required",
+                    user.Email, user.UserId);
+                return;
+            }
+
+            // No PIN configured - proceed with full login (legacy behavior)
+            var authResult = await authService.LoginWithRfidAsync(rfidTagUid, scanner.Name);
+
+            if (authResult == null)
+            {
+                _logger.LogWarning("RFID login failed for tag {RfidTagUid}", rfidTagUid);
+                await Task.WhenAll(
+                    _loginHubContext.Clients.Group($"scanner_{deviceId}")
+                        .SendAsync(HubEvents.LoginFailed, new { Error = "Login failed. Please try again." }),
+                    _kioskHubContext.Clients.Group($"scanner_{deviceId}")
+                        .SendAsync(HubEvents.LoginFailed, new { Error = "Login failed. Please try again." })
+                );
+                return;
+            }
+
             // Bind user to this scanner
             await _scannerSessionService.BindUserToScannerAsync(authResult.UserId, deviceId);
 
             var loginResponse = new RfidLoginResponseDto
             {
                 Success = true,
+                RequiresPinVerification = false,
                 Token = authResult.Token,
                 Email = authResult.Email,
                 Name = authResult.Name,

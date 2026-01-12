@@ -18,4 +18,14 @@ public class RfidLoginResponseDto
     public string? ScannerDeviceId { get; set; }
     public string? ScannerName { get; set; }
     public string? Error { get; set; }
+    
+    /// <summary>
+    /// If true, the user must verify their PIN before full access is granted
+    /// </summary>
+    public bool RequiresPinVerification { get; set; }
+    
+    /// <summary>
+    /// Temporary MFA token for PIN verification (only set when RequiresPinVerification is true)
+    /// </summary>
+    public string? MfaToken { get; set; }
 }

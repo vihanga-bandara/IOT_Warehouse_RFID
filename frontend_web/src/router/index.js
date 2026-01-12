@@ -23,6 +23,12 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/verify-pin',
+    name: 'PinVerification',
+    component: () => import('../views/PinVerification.vue'),
+    meta: { requiresAuth: false, requiresPendingMfa: true }
+  },
+  {
     path: '/select-scanner',
     name: 'ScannerSelect',
     component: () => import('../views/ScannerSelect.vue'),
@@ -90,6 +96,27 @@ router.beforeEach((to, from, next) => {
   console.log('User:', authStore.user)
   console.log('User role:', authStore.user?.role)
   console.log('Scanner:', authStore.scannerDeviceId)
+  console.log('Pending MFA:', !!authStore.pendingMfaData)
+
+  // Handle PIN verification route
+  if (to.meta.requiresPendingMfa) {
+    // Only allow access if there's pending MFA data
+    if (!authStore.pendingMfaData) {
+      console.log('No pending MFA, redirecting to login')
+      next('/login')
+      return
+    }
+    // Allow access to PIN verification page
+    next()
+    return
+  }
+
+  // If user has pending MFA and tries to go elsewhere (except login), redirect to PIN verification
+  if (authStore.pendingMfaData && to.path !== '/login' && to.path !== '/verify-pin') {
+    console.log('Pending MFA exists, redirecting to PIN verification')
+    next('/verify-pin')
+    return
+  }
 
   // Check authentication
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {

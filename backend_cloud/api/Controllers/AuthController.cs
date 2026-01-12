@@ -106,6 +106,69 @@ public class AuthController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Verify PIN after RFID scan (MFA step 2)
+    /// </summary>
+    [HttpPost("verify-pin")]
+    public async Task<IActionResult> VerifyPin([FromBody] VerifyPinDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var result = await _authService.VerifyPinAsync(dto);
+
+            if (!result.Success)
+            {
+                // Return appropriate status codes based on error type
+                if (result.Locked == true)
+                {
+                    return StatusCode(423, result); // 423 Locked
+                }
+                return Unauthorized(result);
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during PIN verification");
+            return StatusCode(500, new { message = "An unexpected error occurred during PIN verification" });
+        }
+    }
+
+    /// <summary>
+    /// Reset a user's PIN (Admin only)
+    /// </summary>
+    [HttpPost("users/{userId}/reset-pin")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> ResetUserPin(int userId)
+    {
+        try
+        {
+            var newPin = await _authService.ResetUserPinAsync(userId);
+            
+            if (newPin == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            return Ok(new PinGeneratedResponseDto
+            {
+                Pin = newPin,
+                Message = "PIN has been reset. Please share this PIN securely with the user. It will not be shown again."
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting PIN for user {UserId}", userId);
+            return StatusCode(500, new { message = "An error occurred while resetting the PIN" });
+        }
+    }
+
     [HttpGet("me")]
     [Authorize]
     public async Task<IActionResult> GetCurrentUser()

@@ -12,6 +12,9 @@ export const useAuthStore = defineStore('auth', () => {
   const scannerDeviceId = ref(localStorage.getItem('scannerDeviceId') || null)
   const scannerName = ref(localStorage.getItem('scannerName') || null)
   
+  // MFA/PIN verification state (temporary, not persisted)
+  const pendingMfaData = ref(null)
+  
   // If user data is invalid, clear everything
   if (!user.value && localStorage.getItem('authToken')) {
     localStorage.removeItem('authToken')
@@ -19,6 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
+  const requiresPinVerification = computed(() => !!pendingMfaData.value)
 
   const login = async (email, password) => {
     try {
@@ -64,7 +68,28 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const setRfidLoginData = (data) => {
-    // Used by RFID login flow where scanner is already known
+    // Check if PIN verification is required
+    if (data.requiresPinVerification && data.mfaToken) {
+      // Store pending MFA data - do not complete login yet
+      pendingMfaData.value = {
+        mfaToken: data.mfaToken,
+        email: data.email,
+        name: data.name,
+        lastname: data.lastname,
+        userId: data.userId,
+        roleIds: data.roleIds,
+        scannerDeviceId: data.scannerDeviceId,
+        scannerName: data.scannerName
+      }
+      return { requiresPinVerification: true }
+    }
+
+    // No PIN required - complete login immediately
+    completeLogin(data)
+    return { requiresPinVerification: false }
+  }
+
+  const completeLogin = (data) => {
     token.value = data.token
     const hasAdminRole = data.roleIds && data.roleIds.includes(1)
     user.value = {
@@ -87,6 +112,50 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('scannerName', data.scannerName)
     }
     api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
+    
+    // Clear any pending MFA data
+    pendingMfaData.value = null
+  }
+
+  const verifyPin = async (pin) => {
+    if (!pendingMfaData.value) {
+      throw new Error('No pending PIN verification')
+    }
+
+    try {
+      const response = await api.post('/auth/verify-pin', {
+        pin,
+        mfaToken: pendingMfaData.value.mfaToken
+      })
+
+      if (response.data.success) {
+        // Complete the login with the full token
+        completeLogin(response.data)
+        return { success: true }
+      } else {
+        return {
+          success: false,
+          error: response.data.error,
+          remainingAttempts: response.data.remainingAttempts,
+          locked: response.data.locked
+        }
+      }
+    } catch (error) {
+      const errorData = error.response?.data
+      if (errorData) {
+        return {
+          success: false,
+          error: errorData.error || 'PIN verification failed',
+          remainingAttempts: errorData.remainingAttempts,
+          locked: errorData.locked
+        }
+      }
+      throw error
+    }
+  }
+
+  const clearPendingMfa = () => {
+    pendingMfaData.value = null
   }
 
   const register = async (email, password, name, lastname) => {
@@ -119,6 +188,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = null
     scannerDeviceId.value = null
     scannerName.value = null
+    pendingMfaData.value = null
     localStorage.removeItem('authToken')
     localStorage.removeItem('user')
     localStorage.removeItem('scannerDeviceId')
@@ -137,10 +207,15 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     scannerDeviceId,
     scannerName,
+    pendingMfaData,
     isAuthenticated,
+    requiresPinVerification,
     login,
     bindScanner,
     setRfidLoginData,
+    completeLogin,
+    verifyPin,
+    clearPendingMfa,
     register,
     logout,
     initializeAuth
