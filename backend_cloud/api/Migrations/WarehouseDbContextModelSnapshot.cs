@@ -283,6 +283,19 @@ namespace RfidWarehouseApi.Migrations
                         .HasColumnType("nvarchar(500)")
                         .HasColumnName("password_hash");
 
+                    b.Property<int>("PinFailedAttempts")
+                        .HasColumnType("int")
+                        .HasColumnName("pin_failed_attempts");
+
+                    b.Property<string>("PinHash")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("pin_hash");
+
+                    b.Property<DateTime?>("PinLockoutUntil")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("pin_lockout_until");
+
                     b.Property<string>("RfidTagUid")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)")
@@ -304,7 +317,8 @@ namespace RfidWarehouseApi.Migrations
                             Email = "admin@warehouse.com",
                             Lastname = "User",
                             Name = "Admin",
-                            PasswordHash = "$2a$11$RsgCc9Xu.LyvI2bmCTbnVu/F9YGdBgKddO5rT0FQjvvnqjHSqiX1i"
+                            PasswordHash = "$2a$11$RsgCc9Xu.LyvI2bmCTbnVu/F9YGdBgKddO5rT0FQjvvnqjHSqiX1i",
+                            PinFailedAttempts = 0
                         },
                         new
                         {
@@ -312,7 +326,8 @@ namespace RfidWarehouseApi.Migrations
                             Email = "john.doe@warehouse.com",
                             Lastname = "Doe",
                             Name = "John",
-                            PasswordHash = "$2a$11$7vDI5K4HOL5925bCdxtvueQ6Vo.YEeXyvlPoHlzr1NS42JlxxZXPe"
+                            PasswordHash = "$2a$11$7vDI5K4HOL5925bCdxtvueQ6Vo.YEeXyvlPoHlzr1NS42JlxxZXPe",
+                            PinFailedAttempts = 0
                         });
                 });
 

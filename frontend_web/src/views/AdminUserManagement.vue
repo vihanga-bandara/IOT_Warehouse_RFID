@@ -378,10 +378,28 @@
               </div>
             </div>
             <div class="user-footer">
-              <button @click="openEditUser(user)" class="edit-user-btn button-ghost">
-                Edit
-              </button>
-              <button @click="viewUserTransactions(user.id)" class="view-transactions-btn primary-action-btn">
+              <div class="footer-actions">
+                <button @click="openEditUser(user)" class="card-btn card-btn-outline">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                  Edit
+                </button>
+                <button 
+                  @click="resetUserPin(user.id, `${user.name} ${user.lastname}`)" 
+                  class="card-btn card-btn-outline"
+                  :disabled="resettingPin"
+                  title="Reset user's PIN"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                  Reset PIN
+                </button>
+              </div>
+              <button @click="viewUserTransactions(user.id)" class="card-btn card-btn-primary">
                 View Transactions
               </button>
             </div>
@@ -512,6 +530,65 @@
       </div>
     </transition>
 
+    <!-- PIN Display Modal -->
+    <transition name="modal-fade">
+      <div v-if="showPinModal" class="modal-overlay" @click="closePinModal">
+        <div class="pin-display-modal" @click.stop>
+          <!-- Header with gradient -->
+          <div class="pin-modal-header">
+            <button class="pin-modal-close" @click="closePinModal" aria-label="Close">×</button>
+            
+            <div class="pin-icon">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                <circle cx="12" cy="16" r="1"/>
+              </svg>
+            </div>
+            
+            <h2 class="pin-modal-title">
+              {{ pinAction === 'created' ? 'User Created!' : 'PIN Reset Complete' }}
+            </h2>
+            
+            <p class="pin-modal-subtitle">
+              {{ pinAction === 'created' ? 'New PIN generated for' : 'New PIN for' }}
+              <strong>{{ pinUserName }}</strong>
+            </p>
+          </div>
+          
+          <!-- Content -->
+          <div class="pin-modal-content">
+            <div class="pin-display-box">
+              <span class="pin-label">Security PIN Code</span>
+              <div class="pin-digits">
+                <span v-for="(digit, index) in displayedPin.split('')" :key="index" class="pin-digit-display">
+                  {{ digit }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="pin-warning">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <p>
+                <strong>Important:</strong> This PIN is shown only once. Share it securely with the user for RFID card login.
+              </p>
+            </div>
+            
+            <button class="pin-acknowledge-btn" @click="closePinModal">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              I've Saved This PIN
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     </div>
   </AdminShell>
 </template>
@@ -538,6 +615,14 @@ export default {
     const editingUser = ref(null)
     const userTransactions = ref([])
     const loadingTransactions = ref(false)
+    
+    // PIN-related state
+    const showPinModal = ref(false)
+    const displayedPin = ref('')
+    const pinUserName = ref('')
+    const pinAction = ref('') // 'created' or 'reset'
+    const resettingPin = ref(false)
+    
     const availableRoles = ref([
       {
         id: 2,
@@ -629,10 +714,19 @@ export default {
           selectedRoleIds.value = [2]
         }
 
-        await api.post('/auth/register', {
+        const response = await api.post('/auth/register', {
           ...newUser.value,
-          roleIds: selectedRoleIds.value
+          roleIds: selectedRoleIds.value,
+          generatePin: true
         })
+
+        // Check if a PIN was generated and show it
+        if (response.data.generatedPin) {
+          pinUserName.value = `${newUser.value.name} ${newUser.value.lastname}`
+          displayedPin.value = response.data.generatedPin
+          pinAction.value = 'created'
+          showPinModal.value = true
+        }
 
         newUser.value = { email: '', password: '', name: '', lastname: '', rfidTagUid: '' }
         selectedRoleIds.value = [2]
@@ -748,6 +842,34 @@ export default {
       userTransactions.value = []
     }
 
+    const resetUserPin = async (userId, userName) => {
+      if (resettingPin.value) return
+      
+      try {
+        resettingPin.value = true
+        const response = await api.post(`/auth/users/${userId}/reset-pin`)
+        
+        if (response.data.pin) {
+          pinUserName.value = userName
+          displayedPin.value = response.data.pin
+          pinAction.value = 'reset'
+          showPinModal.value = true
+        }
+      } catch (err) {
+        console.error('Failed to reset PIN:', err)
+        alert('Failed to reset PIN. Please try again.')
+      } finally {
+        resettingPin.value = false
+      }
+    }
+
+    const closePinModal = () => {
+      showPinModal.value = false
+      displayedPin.value = ''
+      pinUserName.value = ''
+      pinAction.value = ''
+    }
+
     const formatDate = (dateString) => {
       const date = new Date(dateString)
       return date.toLocaleString('en-US', {
@@ -796,7 +918,15 @@ export default {
       actionClass,
       viewUserTransactions,
       closeTransactionModal,
-      formatDate
+      formatDate,
+      // PIN-related
+      showPinModal,
+      displayedPin,
+      pinUserName,
+      pinAction,
+      resettingPin,
+      resetUserPin,
+      closePinModal
     }
   }
 }
@@ -1341,6 +1471,8 @@ export default {
 }
 
 .user-card {
+  display: flex;
+  flex-direction: column;
   background: var(--card-bg, white);
   border: 2px solid var(--border-color);
   border-radius: 12px;
@@ -1415,25 +1547,6 @@ export default {
   transform: translateY(-1px);
 }
 
-.edit-user-btn {
-  background: transparent;
-  color: var(--primary-dark);
-  border: 1px solid var(--border-color);
-  padding: 0.4rem 0.75rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  margin-right: 0.5rem;
-  min-width: 72px;
-}
-
-.edit-user-btn:hover {
-  background: var(--bg-light);
-  border-color: var(--primary-light);
-}
-
 .user-name {
   color: var(--primary-dark);
   margin: 0 0 1rem;
@@ -1453,6 +1566,8 @@ export default {
   margin-bottom: 1rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--border-color);
+  flex: 1;
+  min-height: 100px;
 }
 
 .detail-item {
@@ -1489,36 +1604,77 @@ export default {
 
 .user-footer {
   display: flex;
+  flex-direction: column;
   gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Card Button Base */
+.card-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  color: var(--accent-gray);
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin-top: 0.75rem;
-}
-
-.primary-action-btn {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
-  color: var(--text-inverse);
-  border: none;
-  padding: 0.6rem 1rem;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  font-weight: 700;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(30,144,255,0.12);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-  min-width: 140px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.primary-action-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(30,144,255,0.18);
+.card-btn svg {
+  flex-shrink: 0;
 }
 
-[data-theme="dark"] .user-footer {
+/* Outline Button */
+.card-btn-outline {
+  background: transparent;
+  color: var(--primary-dark);
+  border: 1.5px solid var(--border-color);
+}
+
+.card-btn-outline:hover:not(:disabled) {
+  border-color: var(--primary-light);
+  background: rgba(30, 144, 255, 0.05);
+  color: var(--primary-light);
+}
+
+.card-btn-outline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+[data-theme="dark"] .card-btn-outline {
   color: #94a3b8;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .card-btn-outline:hover:not(:disabled) {
+  border-color: var(--primary-light);
+  background: rgba(30, 144, 255, 0.1);
+  color: var(--primary-light);
+}
+
+/* Primary Button */
+.card-btn-primary {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 2px 8px rgba(30, 144, 255, 0.25);
+  width: 100%;
+}
+
+.card-btn-primary:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.35);
+  transform: translateY(-1px);
 }
 
 
@@ -1970,6 +2126,252 @@ export default {
   .page-size-select {
     margin-left: 0;
     margin-top: 0.5rem;
+  }
+}
+
+/* PIN Display Modal */
+.pin-display-modal {
+  background: white;
+  border-radius: 20px;
+  padding: 0;
+  max-width: 440px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+[data-theme="dark"] .pin-display-modal {
+  background: #1e293b;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+.pin-modal-header {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  padding: 2rem 2rem 1.5rem;
+  text-align: center;
+  position: relative;
+}
+
+.pin-modal-header::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: white;
+  border-radius: 50% 50% 0 0;
+}
+
+[data-theme="dark"] .pin-modal-header::after {
+  background: #1e293b;
+}
+
+.pin-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: white;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.pin-modal-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 0.25rem;
+}
+
+.pin-modal-subtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+.pin-modal-subtitle strong {
+  color: white;
+  font-weight: 600;
+}
+
+.pin-modal-content {
+  padding: 1.5rem 2rem 2rem;
+  text-align: center;
+}
+
+.pin-display-box {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 2px solid #86efac;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+[data-theme="dark"] .pin-display-box {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.pin-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #059669;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+[data-theme="dark"] .pin-label {
+  color: #34d399;
+}
+
+.pin-digits {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.pin-digit-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 68px;
+  background: white;
+  border: 2px solid #059669;
+  border-radius: 12px;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #059669;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+}
+
+[data-theme="dark"] .pin-digit-display {
+  background: #0f172a;
+  border-color: #10b981;
+  color: #34d399;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.pin-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+[data-theme="dark"] .pin-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.pin-warning svg {
+  flex-shrink: 0;
+  color: #d97706;
+  margin-top: 0.1rem;
+}
+
+.pin-warning p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .pin-warning p {
+  color: #fbbf24;
+}
+
+.pin-warning strong {
+  color: #b45309;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .pin-warning strong {
+  color: #fbbf24;
+}
+
+.pin-acknowledge-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.9rem 1.5rem;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
+}
+
+.pin-acknowledge-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.45);
+}
+
+.pin-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.pin-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 600px) {
+  .pin-display-modal {
+    max-width: 95%;
+  }
+
+  .pin-modal-header {
+    padding: 1.5rem 1.5rem 1.25rem;
+  }
+
+  .pin-modal-content {
+    padding: 1.25rem 1.5rem 1.5rem;
+  }
+
+  .pin-digit-display {
+    width: 48px;
+    height: 58px;
+    font-size: 1.6rem;
+  }
+
+  .pin-digits {
+    gap: 0.4rem;
   }
 }
 </style>
