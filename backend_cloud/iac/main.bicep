@@ -1,6 +1,6 @@
 // Azure Infrastructure as Code - Bicep template
 // IoT Warehouse RFID Project Infrastructure
-// Deploys: IoT Hub (Free), App Service (F1), SQL Database (Basic - Free with Azure for Students)
+// Deploys: IoT Hub (Free), App Service (F1), SQL Database (Serverless Free Tier for Students)
 
 // Parameters
 param location string = 'westeurope'
@@ -212,21 +212,27 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
   }
 }
 
-// ===== SQL Database (Basic Tier - Free with Azure for Students) =====
+// ===== SQL Database (Serverless Free Tier - 100k vCore seconds/month for Students) =====
 resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   parent: sqlServer
   name: sqlDbName
   location: location
   tags: commonTags
   sku: {
-    name: 'Basic'
-    tier: 'Basic'
+    name: 'GP_S_Gen5'
+    tier: 'GeneralPurpose'
+    family: 'Gen5'
+    capacity: 1
   }
   properties: {
     collation: 'SQL_Latin1_General_CP1_CI_AS'
     catalogCollation: 'SQL_Latin1_General_CP1_CI_AS'
-    maxSizeBytes: 2147483648 // 2 GB
+    maxSizeBytes: 34359738368 // 32 GB (free tier limit)
     zoneRedundant: false
+    autoPauseDelay: 60 // Auto-pause after 60 minutes of inactivity
+    minCapacity: json('0.5') // Minimum 0.5 vCores when active
+    useFreeLimit: true // Enable free tier for eligible subscriptions
+    freeLimitExhaustionBehavior: 'AutoPause' // Pause when free limit is exhausted
   }
 }
 
