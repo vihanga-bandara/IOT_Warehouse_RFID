@@ -1,7 +1,3 @@
-// Azure Infrastructure as Code - Bicep template
-// IoT Warehouse RFID Project Infrastructure
-// Deploys: IoT Hub (Free), App Service (F1), SQL Database (Serverless Free Tier for Students)
-
 // Parameters
 param location string = 'westeurope'
 param environment string = 'dev'
@@ -18,24 +14,20 @@ param jwtExpiryMinutes int = 480
 param iotEventHubConnectionString string
 param iotConsumerGroup string = 'rfid-api'
 
-// Mailtrap (email sending)
 @secure()
 param mailtrapApiToken string = ''
 param mailtrapInboxId string = '0'
-// Capture creation timestamp once (allowed in parameter default)
 param createdDate string = utcNow('u')
 
-// Variables
 var uniqueSuffix = uniqueString(resourceGroup().id)
 var resourcePrefix = '${projectName}-${environment}'
 var iotHubName = '${resourcePrefix}-iothub-${uniqueSuffix}'
 var appServiceName = '${resourcePrefix}-app-${uniqueSuffix}'
 var appServicePlanName = '${resourcePrefix}-plan'
 var sqlServerName = '${resourcePrefix}-sqlserver-${uniqueSuffix}'
-var sqlDbName = '${resourcePrefix}-db'
+var sqlDbName = '${resourcePrefix}-warehouse-db'
 var appInsightsName = '${resourcePrefix}-appi-${uniqueSuffix}'
 
-// Tags
 var commonTags = {
   environment: environment
   project: projectName
@@ -43,7 +35,7 @@ var commonTags = {
   createdDate: createdDate
 }
 
-// ===== IoT Hub (Free Tier - 8000 messages/day) =====
+// ===== IoT Hub =====
 resource iotHub 'Microsoft.Devices/IotHubs@2023-06-30' = {
   name: iotHubName
   location: location
@@ -76,7 +68,6 @@ resource iotHub 'Microsoft.Devices/IotHubs@2023-06-30' = {
   }
 }
 
-// Create a dedicated consumer group for this API (avoid using $Default)
 resource iotConsumerGroupResource 'Microsoft.Devices/IotHubs/eventHubEndpoints/ConsumerGroups@2023-06-30' = {
   name: '${iotHub.name}/events/${iotConsumerGroup}'
   properties: {
@@ -84,7 +75,6 @@ resource iotConsumerGroupResource 'Microsoft.Devices/IotHubs/eventHubEndpoints/C
   }
 }
 
-// ===== Application Insights =====
 resource appInsights 'Microsoft.Insights/components@2015-05-01' = {
   name: appInsightsName
   location: location
@@ -95,7 +85,7 @@ resource appInsights 'Microsoft.Insights/components@2015-05-01' = {
   }
 }
 
-// ===== App Service Plan (Linux F1 - Free Tier) =====
+// ===== App Service Plan =====
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: appServicePlanName
   location: location
@@ -110,7 +100,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   }
 }
 
-// ===== App Service (Linux) =====
+// ===== App Service =====
 resource appService 'Microsoft.Web/sites@2023-12-01' = {
   name: appServiceName
   location: location
@@ -178,7 +168,7 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
       connectionStrings: [
         {
           name: 'DefaultConnection'
-          connectionString: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDbName};Persist Security Info=False;User ID=${sqlAdminUsername};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+          connectionString: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabase.name};Persist Security Info=False;User ID=${sqlAdminUsername};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
           type: 'SQLAzure'
         }
       ]
@@ -187,7 +177,6 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
   }
 }
 
-// ===== SQL Server =====
 resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
   name: sqlServerName
   location: location
@@ -202,7 +191,6 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
     publicNetworkAccess: 'Enabled'
   }
 
-  // Firewall rule for Azure services
   resource firewallRule 'firewallRules@2023-08-01-preview' = {
     name: 'AllowAllAzureServices'
     properties: {
@@ -212,14 +200,14 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
   }
 }
 
-// ===== SQL Database (Serverless Free Tier - 100k vCore seconds/month for Students) =====
+// ===== SQL Database (Serverless Free Tier) =====
 resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   parent: sqlServer
   name: sqlDbName
   location: location
   tags: commonTags
   sku: {
-    name: 'GP_S_Gen5'
+    name: 'GP_S_Gen5_1'
     tier: 'GeneralPurpose'
     family: 'Gen5'
     capacity: 1
@@ -227,16 +215,15 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   properties: {
     collation: 'SQL_Latin1_General_CP1_CI_AS'
     catalogCollation: 'SQL_Latin1_General_CP1_CI_AS'
-    maxSizeBytes: 34359738368 // 32 GB (free tier limit)
+    maxSizeBytes: 34359738368
     zoneRedundant: false
-    autoPauseDelay: 60 // Auto-pause after 60 minutes of inactivity
-    minCapacity: json('0.5') // Minimum 0.5 vCores when active
-    useFreeLimit: true // Enable free tier for eligible subscriptions
-    freeLimitExhaustionBehavior: 'AutoPause' // Pause when free limit is exhausted
+    autoPauseDelay: 60
+    minCapacity: json('0.5')
+    useFreeLimit: true
+    freeLimitExhaustionBehavior: 'AutoPause'
   }
 }
 
-// ===== Outputs =====
 output iotHubHostName string = iotHub.properties.hostName
 output appServiceName string = appService.name
 output appServiceUrl string = 'https://${appService.properties.defaultHostName}'
@@ -244,7 +231,5 @@ output sqlServerName string = sqlServer.properties.fullyQualifiedDomainName
 output sqlDatabaseName string = sqlDatabase.name
 output resourceGroupName string = resourceGroup().name
 output appInsightsName string = appInsights.name
-
-// Connection strings for App Service configuration (secure outputs)
 @secure()
 output sqlConnectionString string = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabase.name};Persist Security Info=False;User ID=${sqlAdminUsername};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
