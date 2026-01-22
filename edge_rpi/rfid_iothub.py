@@ -85,19 +85,47 @@ reader = SimpleMFRC522()
 
 print("RFID scanner started. Press Ctrl+C to exit.")
 
-# 🔑 CREATE CLIENT (NO 'with')
-device_client = IoTHubDeviceClient.create_from_connection_string(CONNECTION_STRING)
-device_client.connect()
+def has_internet():
+    """Return True if internet is available, False otherwise."""
+    try:
+        subprocess.check_call(
+            ["ping", "-c", "1", "8.8.8.8"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+        return True
+    except subprocess.CalledProcessError:
+        return False
 
 try:
     while True:
+        # Always check internet at the start of each loop
+        if not has_internet():
+            print("No internet connection!")
+            set_led("red")
+            time.sleep(2)
+            continue  # skip scanning until internet returns
+
+        # Internet is available → show blue while waiting for scan
+        set_led("blue")
         print("Waiting for RFID tag...")
         tag_id, text = reader.read()
+        tag_text = text.strip() if text else ""
 
+        # Connect to IoT Hub if not already connected
+        if device_client is None:
+            try:
+                device_client = IoTHubDeviceClient.create_from_connection_string(CONNECTION_STRING)
+                device_client.connect()
+            except Exception as e:
+                print("Cannot connect to IoT Hub:", e)
+                set_led("red")
+                time.sleep(2)
+                continue
+
+        # Prepare payload exactly like before
         payload = {
             "deviceId": "rpi-scanner-01",
-            "rfidTagId": str(tag_id),
-            "tagText": text.strip() if text else "",
+            "rfidUid": tag_text,
+            "tagText": tag_text,
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
