@@ -2,6 +2,8 @@
 
 RFID-based warehouse tool tracking with a Vue 3 web UI, an ASP.NET Core 8 API, and Azure IoT Hub + SignalR for real-time kiosk updates.
 
+Dear Reader: This was mainly vibe coded hence the main focus was on the overall architecture, edge + backend and not much for the front_end, so you can ignore some of the best practices in the front end code.
+
 ## What’s in this repo
 - **frontend_web/**: Vue 3 SPA (Admin + User + Kiosk)
 - **backend_cloud/api/**: ASP.NET Core Web API + SignalR hub + EF Core
