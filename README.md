@@ -2,7 +2,7 @@
 
 RFID-based warehouse tool tracking with a Vue 3 web UI, an ASP.NET Core 8 API, and Azure IoT Hub + SignalR for real-time kiosk updates.
 
-Dear Reader: This was mainly vibe coded hence the main focus was on the overall architecture, cloud, edge + backend and not much for the front_end, so you can ignore some of the best practices in the front end code.
+Dear Reader: This was mainly vibe coded specially the front-end since the main focus was to polish my skills on spec-driven development where I mostly focused on the overall architecture, cloud services, edge (IOT) + backend services and I did not put much effort into the front_end, so I would advise you to ignore any mishaps in the FE code.
 
 ## System Architecture
 <img width="4703" height="6715" alt="System Architecture - V4" src="https://github.com/user-attachments/assets/617ed547-94c5-474a-a241-6244d30e1b58" />
